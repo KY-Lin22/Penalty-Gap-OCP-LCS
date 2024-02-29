@@ -35,10 +35,11 @@ end
 %% create record for time and log
 % time
 Time = struct('gradEval', 0, 'searchDirection', 0, 'lineSearch', 0, 'else', 0, 'total', 0);
-% log (also record some quantities that may not be used in the iteration routine, e.g., J_ocp, J_penalty)
+% log (also record some quantities that may not be used in the iteration routine,
+% e.g., J_ocp, J_penalty, D_gap_func_res, D_gap_grad_res)
 if Option.recordLevel == 1
     Log.cost      = zeros(Option.maxIterNum, 3); % [ocp, penalty, total]
-    Log.gap       = zeros(Option.maxIterNum, 1); % max gap residual
+    Log.gap       = zeros(Option.maxIterNum, 2); % [max D_gap_func_res, max D_gap_grad_res]
     Log.KKT_error = zeros(Option.maxIterNum, 3); % [primal, dual, total]   
     Log.dzNorm    = zeros(Option.maxIterNum, 1);
     Log.beta      = zeros(Option.maxIterNum, 1); 
@@ -86,16 +87,12 @@ while true
     % cost Jacobian
     J_grad = full(NLP.FuncObj.J_grad(z, p));
     % D gap function and Jacobian
-    D_gap = full(NLP.FuncObj.D_gap(z));
-    D_gap_grad = sparse(NLP.FuncObj.D_gap_grad(z));
+    D_gap_grad = full(NLP.FuncObj.D_gap_grad(z));
+    D_gap_hessian = sparse(NLP.FuncObj.D_gap_hessian(z));
     % Huber hessian
-    Huber_hessian = sparse(NLP.Huber_hessian(D_gap));
-
+    Huber_hessian = sparse(NLP.Huber_hessian(D_gap_grad));
     % Lagrangian Hessian
-    LAG_hessian = J_ocp_hessian + D_gap_grad' * Huber_hessian * D_gap_grad;
-
-    % test
-    % disp(['max D gap grad: ', num2str(max(max(abs(D_gap_grad)))), ' max Hessian: ', num2str(max(max(abs(D_gap_grad' * Huber_hessian * D_gap_grad))))])
+    LAG_hessian = J_ocp_hessian + D_gap_hessian' * Huber_hessian * D_gap_hessian;
 
     % KKT error (L_inf norm)
     scaling_dual = max([Option.KKT_scaling_max, norm(gamma_h, 1)/NLP.Dim.h])/Option.KKT_scaling_max;
@@ -167,7 +164,7 @@ while true
     if Option.recordLevel == 1
         % record (including some quantities that may not be used in the SGFL iteration rountie, e.g., J_ocp, J_penalty)
         Log.cost(k, :)      = [full(NLP.FuncObj.J_ocp(z, p)), full(NLP.FuncObj.J_penalty(z, p)), J];
-        Log.gap(k)          = norm(D_gap, inf);
+        Log.gap(k, :)       = [norm(full(NLP.FuncObj.D_gap_func(z)), inf), norm(D_gap_grad, inf)];
         Log.KKT_error(k, :) = [KKT_error_primal, KKT_error_dual, KKT_error_total];        
         Log.dzNorm(k)       = dzNorm;
         Log.beta(k)         = beta_k;
@@ -178,7 +175,7 @@ while true
             % head
             if mod(k, 10) == 1
                 disp('----------------------------------------------------------------------------------------------------------------------------------------------------')
-                headMsg = ' Iter | cost(ocp)| cost(pen)|  gapRes  |  KKT(P)  |  KKT(D)  |  dzNorm  |   beta   | stepsize |  merit   | merit(t) | time(ms) |';
+                headMsg = ' Iter | cost(ocp)| cost(pen)|  gapRes  |gapGradRes|  KKT(P)  |  KKT(D)  |  dzNorm  |   beta   | stepsize |  merit   | merit(t) | time(ms) |';
                 disp(headMsg)
             end
             % previous iterate message
@@ -187,6 +184,7 @@ while true
                 num2str(Log.cost(k, 1),'%10.2e'), ' | ',...
                 num2str(Log.cost(k, 2),'%10.2e'), ' | ',...
                 num2str(Log.gap(k, 1), '%10.2e'), ' | ',...
+                num2str(Log.gap(k, 2), '%10.2e'), ' | ',...
                 num2str(Log.KKT_error(k, 1), '%10.2e'), ' | ',...
                 num2str(Log.KKT_error(k, 2), '%10.2e'), ' | ',...
                 num2str(Log.dzNorm(k),'%10.2e'), ' | ',...
@@ -231,11 +229,11 @@ Info.VI_natural_residual     = self.evaluate_natural_residual(z);
 % create Info (log)
 if Option.recordLevel == 1
     Info.Log.cost      = Log.cost(1 : k - 1, :);
-    Info.Log.gap       = Log.gap(1 : k - 1, 1);
+    Info.Log.gap       = Log.gap(1 : k - 1, :);
     Info.Log.KKT_error = Log.KKT_error(1 : k - 1, :);
-    Info.Log.dzNorm    = Log.dzNorm(1 : k - 1, 1);
-    Info.Log.beta      = Log.beta(1 : k - 1, 1);
-    Info.Log.stepSize  = Log.stepSize(1 : k - 1, 1);
+    Info.Log.dzNorm    = Log.dzNorm(1 : k - 1, :);
+    Info.Log.beta      = Log.beta(1 : k - 1, :);
+    Info.Log.stepSize  = Log.stepSize(1 : k - 1, :);
     Info.Log.merit     = Log.merit(1 : k - 1, :);
 end
 % display termination and solution message, then break rountie

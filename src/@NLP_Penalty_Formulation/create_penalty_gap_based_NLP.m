@@ -20,7 +20,7 @@ function nlp = create_penalty_gap_based_NLP(self, OCP)
 %            with mu: nonnegative penalty parameter for penalty function
 %        (3) J: cost function J = J_ocp + J_penalty
 %            J_ocp = sum(J_stage_n)*dt
-%            J_penalty = mu*huber_func([D_gap_1, ... D_gap_n, ...D_gap_N])
+%            J_penalty = mu*huber_func([D_gap_grad_1, ..., D_gap_(2*n_lambda*N)])
 %            with J_stage_n:   stage cost defined in OCP
 %        (4) h: equality constraint arranged in a stagewise manner
 %            h = [h_1;...h_n;...h_N] and 
@@ -31,11 +31,13 @@ function nlp = create_penalty_gap_based_NLP(self, OCP)
 %         z: variable
 %         p: parameter
 %         J, h: cost and constraint function,  
-%         J_ocp, J_penalty: cost term
 %         J_grad: cost term gradient
 %         h_grad: constraint Jacobian (constant)
 %         J_ocp_hessian: ocp cost term hessian (constant)
-%         D_gap_grad: used to evaluate J_penalty_hessian
+%         J_ocp, J_penalty: cost term
+%         D_gap_func: (z -> 1 X [n_lambda * N])
+%         D_gap_grad: (z -> 1 X [2 * n_lambda * N])
+%         D_gap_hessian: (z -> [2 * n_lambda * N] X [2 * n_lambda * N]) used to evaluate J_penalty_hessian
 %         Dim: problem size
 
 import casadi.*
@@ -55,18 +57,24 @@ mu = SX.sym('mu', 1, 1);
 %% mapping function object
 % stage cost
 L_S_map = OCP.FuncObj.L_S.map(OCP.nStages);
-% D gap function
-D_gap_map = self.D_gap_func.map(OCP.nStages);
+% D gap function and gradient
+D_gap_func_map = self.D_gap_func.map(OCP.Dim.lambda*OCP.nStages);
+D_gap_grad_map = self.D_gap_grad.map(OCP.Dim.lambda*OCP.nStages);
 % ODE r.h.s function
 f_map = OCP.FuncObj.f.map(OCP.nStages);
 % complementarity function
 g_map = OCP.FuncObj.g.map(OCP.nStages);
 
 %% formulate NLP function (stagewise)
-% ocp stage cost
+% stage cost
 L_S_stage = L_S_map(X, U, LAMBDA);
-% D gap
-D_gap = D_gap_map(LAMBDA, ETA);
+% D gap function and gradient
+D_gap_func = D_gap_func_map(...
+    reshape(LAMBDA, 1, OCP.Dim.lambda * OCP.nStages),...
+    reshape(ETA, 1, eta_Dim * OCP.nStages));
+D_gap_grad = D_gap_grad_map(...
+    reshape(LAMBDA, 1, OCP.Dim.lambda * OCP.nStages),...
+    reshape(ETA, 1, eta_Dim * OCP.nStages));
 % constraint
 f_stage = f_map(X, U, LAMBDA);
 g_stage = g_map(X, U, LAMBDA);
@@ -81,7 +89,7 @@ Dim.z = size(z, 1);
 p = mu;
 % cost function
 J_ocp = sum(L_S_stage) * OCP.timeStep;
-J_penalty = mu * self.Huber_func(D_gap);
+J_penalty = mu * self.Huber_func(D_gap_grad);
 J = J_ocp + J_penalty;
 % equality constraint h = 0
 h_stage = ...
@@ -105,17 +113,18 @@ h_grad = sparse(h_grad_func(zeros(Dim.z, 1)));
 J_ocp_hessian_func = Function('J_ocp_hessian_func', {z}, {J_ocp_hessian_formula}, {'z'}, {'J_ocp_hessian_formula'});
 J_ocp_hessian = sparse(J_ocp_hessian_func(zeros(Dim.z, 1)));
 
-D_gap_grad = jacobian(D_gap, z);
+D_gap_hessian = jacobian(D_gap_grad, z);
 
 %% create output struct
 nlp = struct('z', z, 'p', p,...
     'J', J, 'h', h, ...
-    'J_ocp', J_ocp, 'J_penalty', J_penalty,...
-    'D_gap', D_gap,...
     'J_grad', J_grad,...
     'h_grad', h_grad,...
     'J_ocp_hessian', J_ocp_hessian,... 
+    'J_ocp', J_ocp, 'J_penalty', J_penalty,...
+    'D_gap_func', D_gap_func,...   
     'D_gap_grad', D_gap_grad,...
+    'D_gap_hessian', D_gap_hessian,...
     'Dim', Dim);
 
 end

@@ -23,10 +23,10 @@ solver.Option.recordLevel = 1;
 solver.Option.printLevel = 2;
 solver.Option.qpSolver = 'osqp'; % 'osqp'
 z_Init = ones(NLP.Dim.z, 1);
-% p = 10;
+% p = 2;
 % [z_Opt, Info] = solver.solve_NLP_single(z_Init, p);
-p_Init = 10;
-p_End = 11;
+p_Init = 2;
+p_End = 5;
 [z_Opt, Info] = solver.solve_NLP(z_Init, p_Init, p_End);
 
 %% show result

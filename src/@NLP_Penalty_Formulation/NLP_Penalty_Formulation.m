@@ -19,8 +19,9 @@ classdef NLP_Penalty_Formulation < handle
                                                         % for BVI, 1998, Mathematical Programming, C.Kanzow & M. Fukushima
     end
     properties
-        D_gap_func % function object, D gap function (stage wise)
-        Huber_func % function object, pseudo Huber loss function: N -> 1
+        D_gap_func % function object, scalar D gap function (1 x 1 -> 1)
+        D_gap_grad % function object, scalar D gap function gradient (1 x 1 -> [1 X 2])
+        Huber_func % function object, pseudo Huber loss function: 2 * n_lambda * N -> 1
         Huber_hessian % function object, pseudo Huber loss function hessian
     end
     properties
@@ -29,9 +30,9 @@ classdef NLP_Penalty_Formulation < handle
         J % symbolic function, cost function 
         h % symbolic function, equality constraint    
 
-        J_ocp_hessian % constant matrix, ocp cost hessian
         h_grad % constant matrix, constraint Jacobian
-
+        J_ocp_hessian % constant matrix, ocp cost hessian
+        
         Dim % struct, problem dimension record
         
         FuncObj % structure, NLP function object  
@@ -57,7 +58,9 @@ classdef NLP_Penalty_Formulation < handle
             end
 
             %% specify properties about function object used in NLP reformulation (stage-wise)
-            self.D_gap_func = self.create_D_gap_func(OCP);
+            [D_gap_func, D_gap_grad] = self.create_D_gap_func();
+            self.D_gap_func = D_gap_func;
+            self.D_gap_grad = D_gap_grad;
             [Huber_func, Huber_hessian] = self.create_Huber_func_hessian(OCP);
             self.Huber_func = Huber_func;
             self.Huber_hessian = Huber_hessian;
@@ -70,8 +73,8 @@ classdef NLP_Penalty_Formulation < handle
             self.J = nlp.J;    
             self.h = nlp.h;   
             % constant jacobian and hessian
-            self.J_ocp_hessian = nlp.J_ocp_hessian;
             self.h_grad = nlp.h_grad;
+            self.J_ocp_hessian = nlp.J_ocp_hessian;            
             % dim
             self.Dim = nlp.Dim;  
 
@@ -94,7 +97,7 @@ classdef NLP_Penalty_Formulation < handle
 
     %% Other methods
     methods
-        D_gap_func = create_D_gap_func(self, OCP)
+        [D_gap_func, D_gap_grad] = create_D_gap_func(self)
 
         [Huber_func, Huber_hessian] = create_Huber_func_hessian(self, OCP)
 

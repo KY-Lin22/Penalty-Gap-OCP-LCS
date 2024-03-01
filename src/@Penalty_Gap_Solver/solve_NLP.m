@@ -163,7 +163,8 @@ while true
         Info.KKT_error.primal = KKT_error_primal_j;
         Info.KKT_error.dual = KKT_error_dual_j;
         Info.VI_natural_residual = VI_nat_res_j;
-        Info.time = Time;
+        Info.Time = Time;
+        Info.time = sum(Log.timeElapsed);
         Info.iterNum = sum(Log.iterNum);
         Info.Log.param = Log.param(1 : j, :);
         Info.Log.cost = Log.cost(1 : j, :);
@@ -177,11 +178,11 @@ while true
         disp('*--------------------------------------------- Solution Information ----------------------------------------------*')
         disp(['1. Terminal Message: ', Info.terminalMsg]) 
         disp('2. Continuation Step Message')
-        disp(['- TimeElapsed: ................................. ', num2str(Info.time.total,'%10.3f'), ' s'])
+        disp(['- TimeElapsed: ................................. ', num2str(Info.time,'%10.3f'), ' s'])
         disp(['- Continuation Step: ........................... ', num2str(Info.continuationStepNum)])        
-        disp(['- Time Per Continuation Step: .................. ', num2str(Info.time.total / Info.continuationStepNum,'%10.2f'), ' s/Step'])
+        disp(['- Time Per Continuation Step: .................. ', num2str(Info.time / Info.continuationStepNum,'%10.2f'), ' s/Step'])
         disp(['- Iterations: .................................. ', num2str(Info.iterNum)])
-        disp(['- Time Per Iteration: .......................... ', num2str(1000 * Info.time.total / Info.iterNum,'%10.2f'), ' ms/Iter'])
+        disp(['- Time Per Iteration: .......................... ', num2str(1000 * Info.time / Info.iterNum,'%10.2f'), ' ms/Iter'])
         disp('3. Solution Message')
         disp(['- Cost(ocp): ................................... ', num2str(Info.cost.ocp,'%10.3e'), '; '])
         disp(['- Cost(penalty): ............................... ', num2str(Info.cost.penalty,'%10.3e'), '; '])

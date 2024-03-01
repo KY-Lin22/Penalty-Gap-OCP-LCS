@@ -2,8 +2,6 @@ function [z_k, Info] = line_search_merit(self, beta, z, dz, p, J, h, J_grad, LAG
 %UNTITLED2 Summary of this function goes here
 %   Detailed explanation goes here
 
-timeStart = tic;
-
 OCP = self.OCP;
 NLP = self.NLP;
 Option = self.Option;
@@ -17,7 +15,6 @@ nu_D = Option.LineSearch.nu_D;
 %% some quantities at current iterate z
 % directional derivative of cost
 J_DD = J_grad * dz;
-
 % constraint violation M 
 % - L1 norm follows IPOPT, and also the cost is the sum of stage cost
 if Option.LineSearch.scaling_constraint_violation
@@ -26,7 +23,6 @@ if Option.LineSearch.scaling_constraint_violation
 else
     M = norm(h, 1);
 end
-
 % penalty parameter
 beta_Trial = (J_DD + 1/2*dz'*LAG_hessian*dz)/((1 - rho) * M);
 if beta >= beta_Trial
@@ -80,11 +76,7 @@ while ~has_found_new_iterate
 end
 
 %% organize output
-timeElapsed = toc(timeStart);
-
 Info.status = status;
-Info.time = timeElapsed;
-
 switch status
     case 0
         % fail, return the previous one

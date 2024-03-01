@@ -16,22 +16,13 @@ Option = self.Option;
 %% solve qp
 switch Option.qpSolver
     case 'fbstab_sparse'
-        % initial guess
-        x0.z = zeros(NLP.Dim.z, 1); % primal variable
-        x0.l = zeros(NLP.Dim.h, 1); % dual variable for equality constraint h
-        x0.v = zeros(1, 1); % dual variable for inequality constraint c
         % set QP problem (follow the NLP KKT stationary condition) and solver option
         qp_Prob = struct('H', LAG_hessian, 'f', J_grad',...
             'G', h_grad, 'h', -h, 'A', sparse(1, NLP.Dim.z), 'b', ones(1, 1));
-        qp_Option = Option.fbstab_options;
-
         % solve QP and extract solution
-        timeStart = tic;
-        [x, out] = fbstab_sparse(x0, qp_Prob, qp_Option);
-        timeElasped = toc(timeStart);
+        [x, out] = fbstab_sparse(Option.fbstab_x0, qp_Prob, Option.fbstab_options);
         dz = x.z; % optimal primal variable
         gamma_h_k = x.l; % optimal dual variable for equality constraint h
-
         % return solver status
         if out.eflag == 0
             % QP solver finds the optimal solution
@@ -57,25 +48,16 @@ switch Option.qpSolver
     case 'osqp'
         % initialization
         osqpSolver = osqp;
-
         % set QP problem (follow the NLP KKT stationary condition) and solver option
         qp_Prob = struct('P', LAG_hessian, 'q', J_grad',...
             'A', h_grad, 'l', -h, 'u', -h);       
-        qp_Option = Option.osqp_options;
-        osqpSolver.setup(qp_Prob.P, qp_Prob.q, qp_Prob.A, qp_Prob.l, qp_Prob.u, qp_Option)
-
+        osqpSolver.setup(qp_Prob.P, qp_Prob.q, qp_Prob.A, qp_Prob.l, qp_Prob.u, Option.osqp_options)
         % initial guess
-        x0 = zeros(NLP.Dim.z, 1); % primal variable
-        y0 = zeros(NLP.Dim.h, 1); % dual variable for equality constraint h and inequality constraint c 
-        osqpSolver.warm_start('x', x0, 'y', y0);
-
+        osqpSolver.warm_start('x', Option.osqp_x0, 'y', Option.osqp_y0);
         % solve QP and extract solution
-        timeStart = tic;
         results = osqpSolver.solve();
-        timeElasped = toc(timeStart);
         dz = results.x; % optimal primal variable
         gamma_h_k = results.y; % optimal dual variable for equality constraint h
-
         % return solver status
         if results.info.status_val == 1
             % QP solver finds the optimal solution
@@ -89,7 +71,6 @@ switch Option.qpSolver
 end
 
 %% create info
-Info.time = timeElasped;
 Info.status = QPstatus;
 Info.msg = QPmsg;
 

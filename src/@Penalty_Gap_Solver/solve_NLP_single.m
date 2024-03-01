@@ -103,7 +103,9 @@ while true
     timeElasped_gradEval = toc(timeStart_gradEval);
 
     %% step 2: search direction evaluation based on previous iterate z
-    % solving a sparse QP subproblem
+    timeStart_searchDirection = tic;
+
+    % solving a sparse QP subproblem    
     [dz, gamma_h_k, Info_SearchDirection] = self.evaluate_search_direction(h, J_grad, h_grad, LAG_hessian);
     % check status
     if Info_SearchDirection.status == 0
@@ -111,11 +113,12 @@ while true
         terminalStatus = -1;
         terminalMsg = ['- Solver fails: ', Info_SearchDirection.msg];
         break
+    else
+        % dzNorm (L_inf norm)
+        dzNorm = norm(dz, inf);
     end
-    timeElasped_searchDirection = Info_SearchDirection.time;
 
-    % dzNorm (L_inf norm)
-    dzNorm = norm(dz, inf);
+    timeElasped_searchDirection = toc(timeStart_searchDirection);
 
     %% step 3: check whether we can terminate successfully based on the previous iterate z
     if KKT_error_total < Option.tol.KKT_error_total
@@ -136,6 +139,8 @@ while true
     end  
 
     %% step 4: merit line search
+    timeStart_lineSearch = tic;
+
     [z_k, Info_LineSearch] = self.line_search_merit(beta, z, dz, p, J, h, J_grad, LAG_hessian);
     % check status
     if Info_LineSearch.status == 0
@@ -143,15 +148,15 @@ while true
         terminalStatus = -2;
         terminalMsg = ['- Solver fails: ', 'because merit line search reaches the min stepsize'];        
         break
+    else
+        % extract quantities (J, h) associated with z_k
+        J_k = Info_LineSearch.J;
+        h_k = Info_LineSearch.h;
+        beta_k = Info_LineSearch.beta;
+        stepSize = Info_LineSearch.stepSize;
+        merit    = Info_LineSearch.merit;
     end  
-    timeElasped_lineSearch = Info_LineSearch.time;
-
-    % extract quantities (J, h) associated with z_k
-    J_k = Info_LineSearch.J;
-    h_k = Info_LineSearch.h;
-    beta_k = Info_LineSearch.beta;
-    stepSize = Info_LineSearch.stepSize;    
-    merit    = Info_LineSearch.merit;
+    timeElasped_lineSearch = toc(timeStart_lineSearch);
 
     %% step 5: record and print information of this iteration k
     timeElasped_total = toc(timeStart_total);

@@ -12,10 +12,10 @@ classdef NLP_Penalty_Formulation < handle
     %  s.t. h(z, p) = 0,
 
     properties
-        CHKS_param double {mustBeNonnegative} = 0.001 % used in CHKS smoothing function for max(0, x)
+        CHKS_param double {mustBeNonnegative} = 1e-5 % used in CHKS smoothing function for max(0, x)
         Huber_param double = 0.1 % used in pseudo Huber loss function, ref: SCP survey 2021, F.Messerer et.al.
-        D_gap_param_a double {mustBeNonnegative} = 0.8; % D gap function parameters: b > a > 0 (a ref value: a = 0.9, b = 1.1)
-        D_gap_param_b double {mustBeNonnegative} = 1.2; % Ref: Theoretical and numerical investigation of the D-gap function   
+        D_gap_param_a double {mustBeNonnegative} = 0.9; % D gap function parameters: b > a > 0 (a ref value: a = 0.9, b = 1.1)
+        D_gap_param_b double {mustBeNonnegative} = 1.1; % Ref: Theoretical and numerical investigation of the D-gap function   
                                                         % for BVI, 1998, Mathematical Programming, C.Kanzow & M. Fukushima
     end
     properties

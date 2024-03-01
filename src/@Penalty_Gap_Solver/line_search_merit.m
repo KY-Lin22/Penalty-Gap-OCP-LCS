@@ -1,4 +1,4 @@
-function [z_k, Info] = line_search_merit(self, beta, z, dz, p, J, h, J_grad, LAG_hessian)
+function [z_k, Info] = line_search_merit(self, beta, z, dz, p, J, h, J_grad, J_ocp_hessian, J_penalty_hessian)
 %UNTITLED2 Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -24,7 +24,7 @@ else
     M = norm(h, 1);
 end
 % penalty parameter
-beta_Trial = (J_DD + 1/2*dz'*LAG_hessian*dz)/((1 - rho) * M);
+beta_Trial = (J_DD + 1/2*dz'*(J_ocp_hessian + J_penalty_hessian)*dz)/((1 - rho) * M);
 if beta >= beta_Trial
     beta_k = beta;
 else

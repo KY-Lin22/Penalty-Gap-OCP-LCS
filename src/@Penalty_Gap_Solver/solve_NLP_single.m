@@ -91,13 +91,12 @@ while true
     D_gap_hessian = sparse(NLP.FuncObj.D_gap_hessian(z));
     % Huber hessian
     Huber_hessian = sparse(NLP.Huber_hessian(D_gap_grad));
-    % Lagrangian Hessian
-    LAG_hessian = J_ocp_hessian + D_gap_hessian' * Huber_hessian * D_gap_hessian;
+    % penalty Hessian
+    J_penalty_hessian = D_gap_hessian' * Huber_hessian * D_gap_hessian;
 
     % KKT error (L_inf norm)
-    scaling_dual = max([Option.KKT_scaling_max, norm(gamma_h, 1)/NLP.Dim.h])/Option.KKT_scaling_max;
     KKT_error_primal = norm(h, inf);
-    KKT_error_dual = norm(J_grad' + h_grad' * gamma_h, inf)/scaling_dual;
+    KKT_error_dual = norm(J_grad' + h_grad' * gamma_h, inf);
     KKT_error_total = max([KKT_error_primal, KKT_error_dual]);
 
     timeElasped_gradEval = toc(timeStart_gradEval);
@@ -106,7 +105,8 @@ while true
     timeStart_searchDirection = tic;
 
     % solving a sparse QP subproblem    
-    [dz, gamma_h_k, Info_SearchDirection] = self.evaluate_search_direction(h, J_grad, h_grad, LAG_hessian);
+    [dz, gamma_h_k, Info_SearchDirection] = ...
+        self.evaluate_search_direction(h, J_grad, h_grad, J_ocp_hessian, J_penalty_hessian);
     % check status
     if Info_SearchDirection.status == 0
         % failure case 2: qp solver fails
@@ -141,7 +141,7 @@ while true
     %% step 4: merit line search
     timeStart_lineSearch = tic;
 
-    [z_k, Info_LineSearch] = self.line_search_merit(beta, z, dz, p, J, h, J_grad, LAG_hessian);
+    [z_k, Info_LineSearch] = self.line_search_merit(beta, z, dz, p, J, h, J_grad, J_ocp_hessian, J_penalty_hessian);
     % check status
     if Info_LineSearch.status == 0
         % failure case 3: line search fails

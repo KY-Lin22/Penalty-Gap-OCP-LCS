@@ -13,18 +13,13 @@ Option.recordLevel = 1; % 0: record time
 %% Option for tolerance
 Option.maxIterNum = 500;
 
-Option.KKT_scaling_max = 100;
 Option.tol.KKT_error_primal = 1e-6;
 Option.tol.KKT_error_dual = 1e-4;
 Option.tol.KKT_error_total = 1e-6;
 Option.tol.dzNorm = 1e-8;
 
-%% Option for Hessian regularization
-
-
-
 %% Option for QP solver to evaluate search direction
-Option.qpSolver = 'fbstab_sparse'; % 'fbstab_sparse', 'osqp'
+Option.qpSolver = 'fbstab_sparse'; % 'fbstab_sparse', 'osqp', 'direct_sparse'
 % option for fbstab_sparse
 Option.fbstab_options = fbstab_options();
 Option.fbstab_options.display_level = 0;

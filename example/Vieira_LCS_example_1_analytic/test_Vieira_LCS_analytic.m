@@ -6,8 +6,8 @@ clc
 OCP = OCP_Vieira_LCS_analytic();
 Option.CHKS_param = 1e-5;
 Option.Huber_param = 0.1;
-Option.D_gap_param_a = 0.9;
-Option.D_gap_param_b = 1.1;
+Option.D_gap_param_a = 0.5;
+Option.D_gap_param_b = 1.5;
 NLP = NLP_Penalty_Formulation(OCP, Option);
 
 solver = Penalty_Gap_Solver(OCP, NLP);

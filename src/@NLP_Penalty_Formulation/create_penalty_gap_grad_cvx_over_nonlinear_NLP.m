@@ -86,6 +86,7 @@ Dim.z_Node = cumsum([OCP.Dim.x, OCP.Dim.u, OCP.Dim.lambda, eta_Dim]);
 Dim.z = size(z, 1);
 % problem parameter
 p = mu;
+Dim.p = size(p, 1);
 % cost function
 J_ocp = sum(L_S_stage) * OCP.timeStep;
 J_penalty = mu * self.Huber_func(D_gap_grad);

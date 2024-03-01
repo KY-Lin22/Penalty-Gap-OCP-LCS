@@ -10,8 +10,17 @@ classdef NLP_Penalty_Formulation < handle
     % NLP has the form:
     %  min  J(z, p),
     %  s.t. h(z, p) = 0,
+    %       c(z, p) >= 0
 
     properties
+        penalty_problem char {mustBeMember(penalty_problem, {...
+            'gap_based',...
+            'complementarity_based'...
+            })} = 'gap_based' 
+        gap_penalty_strategy char {mustBeMember(gap_penalty_strategy, {...
+            'func_direct',...
+            'grad_cvx_over_nonlinear'...
+            })} = 'grad_cvx_over_nonlinear' 
         CHKS_param double {mustBeNonnegative} = 1e-5 % used in CHKS smoothing function for max(0, x)
         Huber_param double = 0.1 % used in pseudo Huber loss function, ref: SCP survey 2021, F.Messerer et.al.
         D_gap_param_a double {mustBeNonnegative} = 0.9; % D gap function parameters: b > a > 0 (a ref value: a = 0.9, b = 1.1)
@@ -28,11 +37,8 @@ classdef NLP_Penalty_Formulation < handle
         z % symbolic variable, includes all the variable to be optimized,
         p % symbolic variable, including all the problem parameter
         J % symbolic function, cost function 
-        h % symbolic function, equality constraint    
-
-        h_grad % constant matrix, constraint Jacobian
-        J_ocp_hessian % constant matrix, ocp cost hessian
-        
+        h % symbolic function, equality constraint  
+        c % symbolic function, inequality constraint      
         Dim % struct, problem dimension record
         
         FuncObj % structure, NLP function object  
@@ -44,6 +50,12 @@ classdef NLP_Penalty_Formulation < handle
             %UNTITLED3 Construct an instance of this class
             %   Detailed explanation goes here
             %% specify properties based on Option
+            if isfield(Option, 'penalty_problem')
+                self.penalty_problem = Option.penalty_problem;
+            end
+            if isfield(Option, 'gap_penalty_strategy')
+                self.gap_penalty_strategy = Option.gap_penalty_strategy;
+            end
             if isfield(Option, 'CHKS_param')
                 self.CHKS_param = Option.CHKS_param;
             end
@@ -57,7 +69,7 @@ classdef NLP_Penalty_Formulation < handle
                 self.D_gap_param_b = Option.D_gap_param_b;
             end
 
-            %% specify properties about function object used in NLP reformulation (stage-wise)
+            %% specify properties about function object that may be used in NLP reformulation 
             [D_gap_func, D_gap_grad] = self.create_D_gap_func();
             self.D_gap_func = D_gap_func;
             self.D_gap_grad = D_gap_grad;
@@ -66,15 +78,25 @@ classdef NLP_Penalty_Formulation < handle
             self.Huber_hessian = Huber_hessian;
 
             %% discretize OCP into NLP
-            nlp = self.create_penalty_gap_based_NLP(OCP);
+
+            switch self.penalty_problem
+                case 'gap_based'
+                    switch self.gap_penalty_strategy
+                        case 'func_direct'
+                            nlp = self.create_penalty_gap_func_direct_NLP(OCP);
+                        case 'grad_cvx_over_nonlinear'
+                            nlp = self.create_penalty_gap_grad_cvx_over_nonlinear_NLP(OCP);
+                    end
+                case 'complementarity_based'
+                    nlp = self.create_penalty_complementarity_NLP(OCP);
+            end
+
             % variable and function
             self.z = nlp.z;   
             self.p = nlp.p;
             self.J = nlp.J;    
-            self.h = nlp.h;   
-            % constant jacobian and hessian
-            self.h_grad = nlp.h_grad;
-            self.J_ocp_hessian = nlp.J_ocp_hessian;            
+            self.h = nlp.h; 
+            self.c = nlp.c;       
             % dim
             self.Dim = nlp.Dim;  
 
@@ -90,6 +112,7 @@ classdef NLP_Penalty_Formulation < handle
             disp('2. Problem Size')
             disp(['number of decision variable (z): ...... ', num2str(self.Dim.z)])
             disp(['number of equality constraint (h): .... ', num2str(self.Dim.h)])
+            disp(['number of inequality constraint (c): .. ', num2str(self.Dim.c)])
 
         end
 
@@ -101,7 +124,11 @@ classdef NLP_Penalty_Formulation < handle
 
         [Huber_func, Huber_hessian] = create_Huber_func_hessian(self, OCP)
 
-        nlp = create_penalty_gap_based_NLP(self, OCP)
+        nlp = create_penalty_gap_func_direct_NLP(self, OCP)
+
+        nlp = create_penalty_gap_grad_cvx_over_nonlinear_NLP(self, OCP)
+
+        nlp = create_penalty_complementarity_NLP(self, OCP)
 
         FuncObj = create_FuncObj(self, nlp)
 

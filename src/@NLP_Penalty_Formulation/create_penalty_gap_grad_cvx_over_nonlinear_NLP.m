@@ -1,4 +1,4 @@
-function nlp = create_penalty_gap_based_NLP(self, OCP)
+function nlp = create_penalty_gap_grad_cvx_over_nonlinear_NLP(self, OCP)
 % formulate a penalty gap function based NLP
 %
 % OCP_LCS has the form:
@@ -10,6 +10,7 @@ function nlp = create_penalty_gap_based_NLP(self, OCP)
 % NLP has the form:
 %  min  J(z, p),
 %  s.t. h(z, p) = 0,
+%       c(z, p) >= 0
 % where: (1) z: collects all the variables to be optimized and arranged in a stagewise manner
 %            z = [z_1;...z_n;...z_N] and z_n = [x_n; u_n; lambda_n; eta_n] 
 %            with x_n:      system state
@@ -20,20 +21,17 @@ function nlp = create_penalty_gap_based_NLP(self, OCP)
 %            with mu: nonnegative penalty parameter for penalty function
 %        (3) J: cost function J = J_ocp + J_penalty
 %            J_ocp = sum(J_stage_n)*dt
-%            J_penalty = mu*huber_func([D_gap_grad_1, ..., D_gap_(2*n_lambda*N)])
+%            J_penalty = mu*huber_func([D_gap_grad_1, ..., D_gap_grad_(2*n_lambda*N)])
 %            with J_stage_n:   stage cost defined in OCP
 %        (4) h: equality constraint arranged in a stagewise manner
 %            h = [h_1;...h_n;...h_N] and 
 %            h_n = [x_{n-1} - x_n + f(x_n, u_n, lambda_n)*dt;
 %                   g(x_n, u_n, lambda_n) - eta_n]     
-%
+%        (5) c: this reformulation does not have inequality constraint
 % output: nlp is a structure with fields:
 %         z: variable
 %         p: parameter
-%         J, h: cost and constraint function,  
-%         J_grad: cost term gradient
-%         h_grad: constraint Jacobian (constant)
-%         J_ocp_hessian: ocp cost term hessian (constant)
+%         J, h, c: cost and constraint function,  
 %         J_ocp, J_penalty: cost term
 %         D_gap_func: (z -> 1 X [n_lambda * N])
 %         D_gap_grad: (z -> 1 X [2 * n_lambda * N])
@@ -75,6 +73,7 @@ D_gap_func = D_gap_func_map(...
 D_gap_grad = D_gap_grad_map(...
     reshape(LAMBDA, 1, OCP.Dim.lambda * OCP.nStages),...
     reshape(ETA, 1, eta_Dim * OCP.nStages));
+
 % constraint
 f_stage = f_map(X, U, LAMBDA);
 g_stage = g_map(X, U, LAMBDA);
@@ -98,29 +97,15 @@ h_stage = ...
 h = reshape(h_stage, (OCP.Dim.x + OCP.Dim.lambda) * OCP.nStages, 1);
 Dim.h_Node = cumsum([OCP.Dim.x, OCP.Dim.lambda]);
 Dim.h = size(h, 1);
-
-%% formulate NLP jacobian and hessian
-% cost gradient
-J_grad = jacobian(J, z);
-
-% constraint jacobian (constant matrix)
-h_grad_formula = jacobian(h, z);
-h_grad_func = Function('h_grad_func', {z}, {h_grad_formula}, {'z'}, {'h_grad_formula'});
-h_grad = sparse(h_grad_func(zeros(Dim.z, 1)));
-
-% ocp cost Hessian (constant matrix)
-[J_ocp_hessian_formula, ~] = hessian(J_ocp, z);
-J_ocp_hessian_func = Function('J_ocp_hessian_func', {z}, {J_ocp_hessian_formula}, {'z'}, {'J_ocp_hessian_formula'});
-J_ocp_hessian = sparse(J_ocp_hessian_func(zeros(Dim.z, 1)));
-
+% inequality constraint c>=0
+c = SX.sym('c', 0, 1);
+Dim.c = size(c, 1);
+% D gap hessian
 D_gap_hessian = jacobian(D_gap_grad, z);
 
 %% create output struct
 nlp = struct('z', z, 'p', p,...
-    'J', J, 'h', h, ...
-    'J_grad', J_grad,...
-    'h_grad', h_grad,...
-    'J_ocp_hessian', J_ocp_hessian,... 
+    'J', J, 'h', h, 'c', c, ... 
     'J_ocp', J_ocp, 'J_penalty', J_penalty,...
     'D_gap_func', D_gap_func,...   
     'D_gap_grad', D_gap_grad,...

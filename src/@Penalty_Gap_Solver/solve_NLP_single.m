@@ -62,8 +62,8 @@ J = full(NLP.FuncObj.J(z, p));
 h = full(NLP.FuncObj.h(z, p));
 
 % constant matrix
-J_ocp_hessian = NLP.J_ocp_hessian;
-h_grad = NLP.h_grad;
+h_grad = NLP.FuncObj.h_grad;
+J_ocp_hessian = NLP.FuncObj.J_ocp_hessian;
 
 %% iteration routine 
 % begin iteration routine

@@ -38,9 +38,9 @@ Time = struct('gradEval', 0, 'searchDirection', 0, 'lineSearch', 0, 'else', 0, '
 % log (also record some quantities that may not be used in the iteration routine,
 % e.g., J_ocp, J_penalty, D_gap_func_res, D_gap_grad_res)
 if Option.recordLevel == 1
-    Log.cost      = zeros(Option.maxIterNum, 3); % [ocp, penalty, total]
+    Log.cost      = zeros(Option.maxIterNum, 2); % [ocp, penalty]
     Log.gap       = zeros(Option.maxIterNum, 2); % [max D_gap_func_res, max D_gap_grad_res]
-    Log.KKT_error = zeros(Option.maxIterNum, 3); % [primal, dual, total]   
+    Log.KKT_error = zeros(Option.maxIterNum, 2); % [primal, dual]   
     Log.dzNorm    = zeros(Option.maxIterNum, 1);
     Log.beta      = zeros(Option.maxIterNum, 1); 
     Log.stepSize  = zeros(Option.maxIterNum, 1);
@@ -83,7 +83,6 @@ while true
 
     %% step 1: Jacobian, Hessian, KKT error and gap evaluation of previous iterate z
     timeStart_gradEval = tic;
-
     % cost Jacobian
     J_grad = full(NLP.FuncObj.J_grad(z, p));
     % D gap function and Jacobian
@@ -93,12 +92,10 @@ while true
     Huber_hessian = sparse(NLP.Huber_hessian(D_gap_grad));
     % penalty Hessian
     J_penalty_hessian = D_gap_hessian' * Huber_hessian * D_gap_hessian;
-
     % KKT error (L_inf norm)
     KKT_error_primal = norm(h, inf);
     KKT_error_dual = norm(J_grad' + h_grad' * gamma_h, inf);
     KKT_error_total = max([KKT_error_primal, KKT_error_dual]);
-
     timeElasped_gradEval = toc(timeStart_gradEval);
 
     %% step 2: search direction evaluation based on previous iterate z
@@ -168,9 +165,9 @@ while true
 
     if Option.recordLevel == 1
         % record (including some quantities that may not be used in the SGFL iteration rountie, e.g., J_ocp, J_penalty)
-        Log.cost(k, :)      = [full(NLP.FuncObj.J_ocp(z, p)), full(NLP.FuncObj.J_penalty(z, p)), J];
+        Log.cost(k, :)      = [full(NLP.FuncObj.J_ocp(z, p)), full(NLP.FuncObj.J_penalty(z, p))];
         Log.gap(k, :)       = [norm(full(NLP.FuncObj.D_gap_func(z)), inf), norm(D_gap_grad, inf)];
-        Log.KKT_error(k, :) = [KKT_error_primal, KKT_error_dual, KKT_error_total];        
+        Log.KKT_error(k, :) = [KKT_error_primal, KKT_error_dual];        
         Log.dzNorm(k)       = dzNorm;
         Log.beta(k)         = beta_k;
         Log.stepSize(k)     = stepSize;    
@@ -226,7 +223,7 @@ Info.terminalMsg = terminalMsg;
 Info.gamma_h                 = gamma_h;
 Info.cost_ocp                = full(NLP.FuncObj.J_ocp(z, p));
 Info.cost_penalty            = full(NLP.FuncObj.J_penalty(z, p));
-Info.cost_total              = J;
+Info.cost_total              = Info.cost_ocp + Info.cost_penalty;
 Info.KKT_error_primal        = KKT_error_primal;
 Info.KKT_error_dual          = KKT_error_dual;
 Info.KKT_error_total         = KKT_error_total;

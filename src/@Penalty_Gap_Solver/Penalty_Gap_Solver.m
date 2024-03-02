@@ -66,7 +66,7 @@ classdef Penalty_Gap_Solver < handle
         [dz, gamma_h_k, Info] = evaluate_search_direction(self, h, J_grad, h_grad, J_ocp_hessian, J_penalty_hessian)
 
         % merit line search 
-        [z_k, Info] = line_search_merit(self, beta, z, dz, p, J, h, J_grad, J_ocp_hessian, J_penalty_hessian)
+        [z_k, Info] = line_search_merit(self, beta, z, dz, p, J_ocp, J_penalty, h, J_grad)
 
         % evaluate natural residual
         natRes = evaluate_natural_residual(self, z_Opt)

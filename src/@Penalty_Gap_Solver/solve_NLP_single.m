@@ -38,8 +38,7 @@ end
 %% create record for time and log
 % time
 Time = struct('gradEval', 0, 'searchDirection', 0, 'lineSearch', 0, 'else', 0, 'total', 0);
-% log (also record some quantities that may not be used in the iteration routine,
-% e.g., J_ocp, J_penalty, D_gap_func_res, D_gap_grad_res)
+% log 
 if Option.recordLevel == 1
     Log.cost      = zeros(Option.maxIterNum, 2); % [ocp, penalty]
     Log.gap       = zeros(Option.maxIterNum, 2); % [max D_gap_func_res, max D_gap_grad_res]
@@ -51,12 +50,16 @@ if Option.recordLevel == 1
 end
 
 %% prepare the first iteration (z: previous iterate z_{k-1}, z_k: current iterate z_{k}) 
+% polish z_Init (TODO)
+
 % counter, beta, z, multipler, cost and constraint function
 k = 1;
 beta = Option.LineSearch.betaInit;
 z = z_Init;
 gamma_h = zeros(NLP.Dim.h, 1);
-J = full(NLP.FuncObj.J(z, p));
+J_ocp = full(NLP.FuncObj.J_ocp(z, p));
+D_gap_grad = full(NLP.FuncObj.D_gap_grad(z));
+J_penalty = p(1) * full(NLP.FuncObj.Huber_func(D_gap_grad));
 h = full(NLP.FuncObj.h(z, p));
 
 % constant matrix
@@ -76,18 +79,22 @@ while true
 
     %% step 1: Jacobian, Hessian, KKT error and gap evaluation of previous iterate z
     timeStart_gradEval = tic;
-    % cost Jacobian
-    J_grad = full(NLP.FuncObj.J_grad(z, p));
-    % D gap function and Jacobian
-    D_gap_grad = full(NLP.FuncObj.D_gap_grad(z));
+
+    % D gap hessian
     D_gap_hessian = sparse(NLP.FuncObj.D_gap_hessian(z));
-    % Huber hessian
-    Huber_hessian = sparse(NLP.Huber_hessian(D_gap_grad));
+    % Huber jacobian and hessian
+    Huber_grad = sparse(NLP.FuncObj.Huber_grad(D_gap_grad));
+    Huber_hessian = sparse(NLP.FuncObj.Huber_hessian(D_gap_grad));
+    % cost Jacobian
+    J_ocp_grad = full(NLP.FuncObj.J_ocp_grad(z, p));
+    J_penalty_grad = full(p(1) * Huber_grad * D_gap_hessian);
+    J_grad = J_ocp_grad + J_penalty_grad;
     % penalty Hessian
     J_penalty_hessian = D_gap_hessian' * Huber_hessian * D_gap_hessian;
     % KKT error (L_inf norm)
     KKT_error_primal = norm(h, inf);
-    KKT_error_dual = norm(J_grad' + h_grad' * gamma_h, inf);
+    KKT_error_dual = norm(J_grad + gamma_h' * h_grad, inf);
+
     timeElasped_gradEval = toc(timeStart_gradEval);
 
     %% step 2: search direction evaluation based on previous iterate z
@@ -130,7 +137,7 @@ while true
     %% step 4: merit line search
     timeStart_lineSearch = tic;
 
-    [z_k, Info_LineSearch] = self.line_search_merit(beta, z, dz, p, J, h, J_grad, J_ocp_hessian, J_penalty_hessian);
+    [z_k, Info_LineSearch] = self.line_search_merit(beta, z, dz, p, J_ocp, J_penalty, h, J_grad);
     % check status
     if Info_LineSearch.status == 0
         % failure case 3: line search fails
@@ -139,11 +146,13 @@ while true
         break
     else
         % extract quantities (J, h) associated with z_k
-        J_k = Info_LineSearch.J;
-        h_k = Info_LineSearch.h;
-        beta_k = Info_LineSearch.beta;
-        stepSize = Info_LineSearch.stepSize;
-        merit    = Info_LineSearch.merit;
+        J_ocp_k      = Info_LineSearch.J_ocp;
+        D_gap_grad_k = Info_LineSearch.D_gap_grad;
+        J_penalty_k  = Info_LineSearch.J_penalty;
+        h_k          = Info_LineSearch.h;
+        beta_k       = Info_LineSearch.beta;
+        stepSize     = Info_LineSearch.stepSize;
+        merit        = Info_LineSearch.merit;
     end  
     timeElasped_lineSearch = toc(timeStart_lineSearch);
 
@@ -156,9 +165,10 @@ while true
     Time.total = Time.total + timeElasped_total;
 
     if Option.recordLevel == 1
-        % record (including some quantities that may not be used in the SGFL iteration rountie, e.g., J_ocp, J_penalty)
-        Log.cost(k, :)      = [full(NLP.FuncObj.J_ocp(z, p)), full(NLP.FuncObj.J_penalty(z, p))];
-        Log.gap(k, :)       = [norm(full(NLP.FuncObj.D_gap_func(z)), inf), norm(D_gap_grad, inf)];
+        % record
+        D_gap_func = full(NLP.FuncObj.D_gap_func(z));
+        Log.cost(k, :)      = [J_ocp, J_penalty];
+        Log.gap(k, :)       = [norm(D_gap_func, inf), norm(D_gap_grad, inf)];
         Log.KKT_error(k, :) = [KKT_error_primal, KKT_error_dual];        
         Log.dzNorm(k)       = dzNorm;
         Log.beta(k)         = beta_k;
@@ -197,7 +207,9 @@ while true
     beta = beta_k;
     z = z_k;
     gamma_h = gamma_h + stepSize * (gamma_h_k - gamma_h);
-    J = J_k;
+    J_ocp = J_ocp_k;
+    D_gap_grad = D_gap_grad_k;
+    J_penalty = J_penalty_k;
     h = h_k;
 end
 
@@ -213,8 +225,8 @@ Info.terminalStatus = terminalStatus;
 Info.terminalMsg = terminalMsg;
 % create Info (corresponds to the solution z_Opt: dual variable, cost, KKT, natural residual)
 Info.gamma_h             = gamma_h;
-Info.cost_ocp            = full(NLP.FuncObj.J_ocp(z, p));
-Info.cost_penalty        = full(NLP.FuncObj.J_penalty(z, p));
+Info.cost_ocp            = J_ocp;
+Info.cost_penalty        = J_penalty;
 Info.KKT_error_primal    = KKT_error_primal;
 Info.KKT_error_dual      = KKT_error_dual;
 Info.VI_natural_residual = self.evaluate_natural_residual(z);

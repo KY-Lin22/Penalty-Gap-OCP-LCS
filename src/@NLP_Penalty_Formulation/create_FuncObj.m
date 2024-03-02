@@ -37,5 +37,15 @@ end
 if isfield(nlp, 'D_gap_hessian')
     FuncObj.D_gap_hessian = Function('D_gap_hessian', {nlp.z}, {nlp.D_gap_hessian}, {'z'}, {'D_gap_hessian'});
 end
+% huber function, gradient and hessian
+if isfield(nlp, 'Huber_func')
+    FuncObj.Huber_func = Function('Huber_func', {nlp.v}, {nlp.Huber_func}, {'v'}, {'Huber_func'});
+end
+if isfield(nlp, 'Huber_grad')
+    FuncObj.Huber_grad = Function('Huber_grad', {nlp.v}, {nlp.Huber_grad}, {'v'}, {'Huber_grad'});
+end
+if isfield(nlp, 'Huber_hessian')
+    FuncObj.Huber_hessian = Function('Huber_hessian', {nlp.v}, {nlp.Huber_hessian}, {'v'}, {'Huber_hessian'});
+end
 
 end

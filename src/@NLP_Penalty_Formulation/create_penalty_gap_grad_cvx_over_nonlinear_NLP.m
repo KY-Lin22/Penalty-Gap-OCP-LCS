@@ -21,7 +21,7 @@ function nlp = create_penalty_gap_grad_cvx_over_nonlinear_NLP(self, OCP)
 %            with mu: nonnegative penalty parameter for penalty function
 %        (3) J: cost function J = J_ocp + J_penalty
 %            J_ocp = sum(J_stage_n)*dt
-%            J_penalty = mu*huber_func([D_gap_grad_1, ..., D_gap_grad_(2*n_lambda*N)])
+%            J_penalty = mu*huber_func(D_gap_grad)
 %            with J_stage_n:   stage cost defined in OCP
 %        (4) h: equality constraint arranged in a stagewise manner
 %            h = [h_1;...h_n;...h_N] and 
@@ -33,9 +33,15 @@ function nlp = create_penalty_gap_grad_cvx_over_nonlinear_NLP(self, OCP)
 %         p: parameter
 %         J, h, c: cost and constraint function,  
 %         J_ocp, J_penalty: cost term
+%
 %         D_gap_func: (z -> 1 X [n_lambda * N])
 %         D_gap_grad: (z -> 1 X [2 * n_lambda * N])
-%         D_gap_hessian: (z -> [2 * n_lambda * N] X [2 * n_lambda * N]) used to evaluate J_penalty_hessian
+%         D_gap_hessian: (z -> [2 * n_lambda * N] X n_z)
+%
+%         v: huber input (D_gap_grad)
+%         Huber_func: (v -> 1)
+%         Huber_grad: (v -> 1 x [2 * n_lambda * N])
+%         Huber_hessian (v -> [2 * n_lambda * N] x [2 * n_lambda * N])
 %         Dim: problem size
 
 import casadi.*
@@ -51,6 +57,13 @@ LAMBDA = SX.sym('LAMBDA', OCP.Dim.lambda, OCP.nStages);
 ETA = SX.sym('ETA', eta_Dim, OCP.nStages); 
 % initialize problem parameter
 mu = SX.sym('mu', 1, 1);
+
+%% create Huber function
+v = SX.sym('v', 1, 2 * OCP.Dim.lambda * OCP.nStages); % huber input: auxiliary variable for D_gap_grad
+Huber_param = self.Huber_param;
+Huber_func = sum(sqrt(v.^2 + Huber_param^2) - Huber_param);
+Huber_grad = jacobian(Huber_func, v);
+[Huber_hessian, ~] = hessian(Huber_func, v);
 
 %% mapping function object
 % stage cost
@@ -73,7 +86,6 @@ D_gap_func = D_gap_func_map(...
 D_gap_grad = D_gap_grad_map(...
     reshape(LAMBDA, 1, OCP.Dim.lambda * OCP.nStages),...
     reshape(ETA, 1, eta_Dim * OCP.nStages));
-
 % constraint
 f_stage = f_map(X, U, LAMBDA);
 g_stage = g_map(X, U, LAMBDA);
@@ -89,7 +101,8 @@ p = mu;
 Dim.p = size(p, 1);
 % cost function
 J_ocp = sum(L_S_stage) * OCP.timeStep;
-J_penalty = mu * self.Huber_func(D_gap_grad);
+Huber_func_FuncObj = Function('Huber_func', {v}, {Huber_func}, {'v'}, {'Huber_func'});
+J_penalty = mu * Huber_func_FuncObj(D_gap_grad); % composite function with variable: z
 J = J_ocp + J_penalty;
 % equality constraint h = 0
 h_stage = ...
@@ -111,6 +124,10 @@ nlp = struct('z', z, 'p', p,...
     'D_gap_func', D_gap_func,...   
     'D_gap_grad', D_gap_grad,...
     'D_gap_hessian', D_gap_hessian,...
+    'v', v,...
+    'Huber_func', Huber_func,...
+    'Huber_grad', Huber_grad, ...
+    'Huber_hessian', Huber_hessian,...
     'Dim', Dim);
 
 end

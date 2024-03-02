@@ -30,8 +30,6 @@ classdef NLP_Penalty_Formulation < handle
     properties
         D_gap_func % function object, scalar D gap function (1 x 1 -> 1)
         D_gap_grad % function object, scalar D gap function gradient (1 x 1 -> [1 X 2])
-        Huber_func % function object, pseudo Huber loss function: 2 * n_lambda * N -> 1
-        Huber_hessian % function object, pseudo Huber loss function hessian
     end
     properties
         z % symbolic variable, includes all the variable to be optimized,
@@ -73,12 +71,8 @@ classdef NLP_Penalty_Formulation < handle
             [D_gap_func, D_gap_grad] = self.create_D_gap_func();
             self.D_gap_func = D_gap_func;
             self.D_gap_grad = D_gap_grad;
-            [Huber_func, Huber_hessian] = self.create_Huber_func_hessian(OCP);
-            self.Huber_func = Huber_func;
-            self.Huber_hessian = Huber_hessian;
 
             %% discretize OCP into NLP
-
             switch self.penalty_problem
                 case 'gap_based'
                     switch self.gap_penalty_strategy
@@ -90,7 +84,6 @@ classdef NLP_Penalty_Formulation < handle
                 case 'complementarity_based'
                     nlp = self.create_penalty_complementarity_NLP(OCP);
             end
-
             % variable and function
             self.z = nlp.z;   
             self.p = nlp.p;
@@ -121,8 +114,6 @@ classdef NLP_Penalty_Formulation < handle
     %% Other methods
     methods
         [D_gap_func, D_gap_grad] = create_D_gap_func(self)
-
-        [Huber_func, Huber_hessian] = create_Huber_func_hessian(self, OCP)
 
         nlp = create_penalty_gap_func_direct_NLP(self, OCP)
 

@@ -32,11 +32,9 @@ Option.fbstab_options.solver_mode = 3; % fbstab_sparse only:
 Option.fbstab_options.use_ordering = true; % default: true
 
 % initial guess for fbstab_sparse 
-Option.fbstab_x0 = struct(...
-    'z', zeros(NLP.Dim.z, 1), ... % primal variable
-    'l', zeros(NLP.Dim.h, 1), ... % dual variable for equality constraint h
-    'v', zeros(1, 1)... % dual variable for inequality constraint c
-    );
+Option.fbstab_x0.z = zeros(NLP.Dim.z, 1); % primal variable
+Option.fbstab_x0.l = zeros(NLP.Dim.h, 1); % dual variable for equality constraint h
+Option.fbstab_x0.v = zeros(1, 1); % dual variable for inequality constraint c
 
 % option for osqp
 osqp_solver = osqp;
@@ -60,7 +58,6 @@ Option.LineSearch.scaling_constraint_violation = true; %
 
 %% Option for homotopy
 Option.Homotopy.kappa_mu_times = 1.2;
-
 Option.Homotopy.VI_nat_res_tol = 1e-2;
 
 end

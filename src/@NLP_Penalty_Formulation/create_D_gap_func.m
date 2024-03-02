@@ -1,4 +1,4 @@
-function [D_gap_func, D_gap_grad] = create_D_gap_func(self)
+function D_gap_func = create_D_gap_func(self)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 import casadi.*
@@ -16,15 +16,7 @@ smooth_max_0_vbu = 0.5*(sqrt((v - param_b*u)^2 + 4*CHKS_param^2) + (v - param_b*
 phi_ab = (param_b - param_a)/(2*param_a*param_b)*v^2 ...
     - 1/(2*param_a)*(smooth_max_0_vau)^2 ...
     + 1/(2*param_b)*(smooth_max_0_vbu)^2;
-% D gap function gradient
-phi_ab_grad_u = smooth_max_0_vau - smooth_max_0_vbu;
-phi_ab_grad_v = (param_b - param_a)/(param_a*param_b)*v ...
-    - 1/(param_a)*(smooth_max_0_vau) ...
-    + 1/(param_b)*(smooth_max_0_vbu);
-phi_ab_grad = [phi_ab_grad_u, phi_ab_grad_v];
-
 % output
 D_gap_func = Function('D_gap_func', {u, v}, {phi_ab}, {'u', 'v'}, {'phi_ab'});
-D_gap_grad = Function('D_gap_grad', {u, v}, {phi_ab_grad}, {'u', 'v'}, {'phi_ab_grad'});
 
 end

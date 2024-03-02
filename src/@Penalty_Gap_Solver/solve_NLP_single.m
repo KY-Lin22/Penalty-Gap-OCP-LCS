@@ -41,7 +41,7 @@ Time = struct('gradEval', 0, 'searchDirection', 0, 'lineSearch', 0, 'else', 0, '
 % log 
 if Option.recordLevel == 1
     Log.cost      = zeros(Option.maxIterNum, 2); % [ocp, penalty]
-    Log.gap       = zeros(Option.maxIterNum, 2); % [max D_gap_func_res, max D_gap_grad_res]
+    Log.gap       = zeros(Option.maxIterNum, 1); %  max D_gap_func_res
     Log.KKT_error = zeros(Option.maxIterNum, 2); % [primal, dual]   
     Log.dzNorm    = zeros(Option.maxIterNum, 1);
     Log.beta      = zeros(Option.maxIterNum, 1); 
@@ -57,14 +57,11 @@ k = 1;
 beta = Option.LineSearch.betaInit;
 z = z_Init;
 gamma_h = zeros(NLP.Dim.h, 1);
-J_ocp = full(NLP.FuncObj.J_ocp(z, p));
-D_gap_grad = full(NLP.FuncObj.D_gap_grad(z));
-J_penalty = p(1) * full(NLP.FuncObj.Huber_func(D_gap_grad));
+J = full(NLP.FuncObj.J(z, p));
 h = full(NLP.FuncObj.h(z, p));
 
 % constant matrix
 h_grad = NLP.FuncObj.h_grad;
-J_ocp_hessian = NLP.FuncObj.J_ocp_hessian;
 
 %% iteration routine 
 while true
@@ -80,17 +77,19 @@ while true
     %% step 1: Jacobian, Hessian, KKT error and gap evaluation of previous iterate z
     timeStart_gradEval = tic;
 
-    % D gap hessian
-    D_gap_hessian = sparse(NLP.FuncObj.D_gap_hessian(z));
-    % Huber jacobian and hessian
-    Huber_grad = sparse(NLP.FuncObj.Huber_grad(D_gap_grad));
-    Huber_hessian = sparse(NLP.FuncObj.Huber_hessian(D_gap_grad));
     % cost Jacobian
-    J_ocp_grad = full(NLP.FuncObj.J_ocp_grad(z, p));
-    J_penalty_grad = full(p(1) * Huber_grad * D_gap_hessian);
-    J_grad = J_ocp_grad + J_penalty_grad;
+    J_grad = full(NLP.FuncObj.J_grad(z, p));
+    % penalty hessian (exact)
+    J_penalty_hessian = sparse(NLP.FuncObj.J_penalty_hessian(z, p));
+
+    % penalty hessian (regularization)
+
+    % regular_hessian = [];
+
     % penalty Hessian
-    J_penalty_hessian = D_gap_hessian' * Huber_hessian * D_gap_hessian;
+    % J_penalty_hessian = J_penalty_hessian + regular_hessian;
+
+
     % KKT error (L_inf norm)
     KKT_error_primal = norm(h, inf);
     KKT_error_dual = norm(J_grad + gamma_h' * h_grad, inf);
@@ -100,19 +99,19 @@ while true
     %% step 2: search direction evaluation based on previous iterate z
     timeStart_searchDirection = tic;
 
-    % solving a sparse QP subproblem    
-    [dz, gamma_h_k, Info_SearchDirection] = ...
-        self.evaluate_search_direction(h, J_grad, h_grad, J_ocp_hessian, J_penalty_hessian);
-    % check status
-    if Info_SearchDirection.status == 0
-        % failure case 2: qp solver fails
-        terminalStatus = -1;
-        terminalMsg = ['- Solver fails: ', Info_SearchDirection.msg];
-        break
-    else
-        % dzNorm (L_inf norm)
-        dzNorm = norm(dz, inf);
-    end
+    % KKT residual
+    KKT_residual = [-J_grad'; -h];
+    % KKT matrix
+    [i_J_pen_hess, j_J_pen_hess, s_J_pen_hess] = find(J_penalty_hessian);
+    KKT_matrix_update = sparse(i_J_pen_hess, j_J_pen_hess, s_J_pen_hess,...
+        NLP.Dim.z + NLP.Dim.h, NLP.Dim.z + NLP.Dim.h, length(s_J_pen_hess));
+    KKT_matrix = self.KKT_matrix_constant + KKT_matrix_update;
+    % solve linear system
+    dz_gamma_h_k = KKT_matrix\KKT_residual;
+    % extract primal and dual part
+    dz = dz_gamma_h_k(1 : NLP.Dim.z, 1);
+    gamma_h_k = dz_gamma_h_k(NLP.Dim.z + 1 : end, 1);
+    dzNorm = norm(dz, inf);
 
     timeElasped_searchDirection = toc(timeStart_searchDirection);
 
@@ -137,7 +136,7 @@ while true
     %% step 4: merit line search
     timeStart_lineSearch = tic;
 
-    [z_k, Info_LineSearch] = self.line_search_merit(beta, z, dz, p, J_ocp, J_penalty, h, J_grad);
+    [z_k, Info_LineSearch] = self.line_search_merit(beta, z, dz, p, J, h, J_grad);
     % check status
     if Info_LineSearch.status == 0
         % failure case 3: line search fails
@@ -146,13 +145,11 @@ while true
         break
     else
         % extract quantities (J, h) associated with z_k
-        J_ocp_k      = Info_LineSearch.J_ocp;
-        D_gap_grad_k = Info_LineSearch.D_gap_grad;
-        J_penalty_k  = Info_LineSearch.J_penalty;
-        h_k          = Info_LineSearch.h;
-        beta_k       = Info_LineSearch.beta;
-        stepSize     = Info_LineSearch.stepSize;
-        merit        = Info_LineSearch.merit;
+        J_k      = Info_LineSearch.J;
+        h_k      = Info_LineSearch.h;
+        beta_k   = Info_LineSearch.beta;
+        stepSize = Info_LineSearch.stepSize;
+        merit    = Info_LineSearch.merit;
     end  
     timeElasped_lineSearch = toc(timeStart_lineSearch);
 
@@ -166,9 +163,8 @@ while true
 
     if Option.recordLevel == 1
         % record
-        D_gap_func = full(NLP.FuncObj.D_gap_func(z));
-        Log.cost(k, :)      = [J_ocp, J_penalty];
-        Log.gap(k, :)       = [norm(D_gap_func, inf), norm(D_gap_grad, inf)];
+        Log.cost(k, :)      = [full(NLP.FuncObj.J_ocp(z, p)), full(NLP.FuncObj.J_penalty(z, p))];
+        Log.gap(k, :)       = norm(full(NLP.FuncObj.D_gap_func(z)), inf);
         Log.KKT_error(k, :) = [KKT_error_primal, KKT_error_dual];        
         Log.dzNorm(k)       = dzNorm;
         Log.beta(k)         = beta_k;
@@ -179,7 +175,7 @@ while true
             % head
             if mod(k, 10) == 1
                 disp('----------------------------------------------------------------------------------------------------------------------------------------------------')
-                headMsg = ' Iter | cost(ocp)| cost(pen)|  gapRes  |gapGradRes|  KKT(P)  |  KKT(D)  |  dzNorm  |   beta   | stepsize |  merit   | merit(t) | time(ms) |';
+                headMsg = ' Iter | cost(ocp)| cost(pen)|  gapRes  |  KKT(P)  |  KKT(D)  |  dzNorm  |   beta   | stepsize |  merit   | merit(t) | time(ms) |';
                 disp(headMsg)
             end
             % previous iterate message
@@ -188,7 +184,6 @@ while true
                 num2str(Log.cost(k, 1),'%10.2e'), ' | ',...
                 num2str(Log.cost(k, 2),'%10.2e'), ' | ',...
                 num2str(Log.gap(k, 1), '%10.2e'), ' | ',...
-                num2str(Log.gap(k, 2), '%10.2e'), ' | ',...
                 num2str(Log.KKT_error(k, 1), '%10.2e'), ' | ',...
                 num2str(Log.KKT_error(k, 2), '%10.2e'), ' | ',...
                 num2str(Log.dzNorm(k),'%10.2e'), ' | ',...
@@ -207,9 +202,7 @@ while true
     beta = beta_k;
     z = z_k;
     gamma_h = gamma_h + stepSize * (gamma_h_k - gamma_h);
-    J_ocp = J_ocp_k;
-    D_gap_grad = D_gap_grad_k;
-    J_penalty = J_penalty_k;
+    J = J_k;
     h = h_k;
 end
 
@@ -225,8 +218,8 @@ Info.terminalStatus = terminalStatus;
 Info.terminalMsg = terminalMsg;
 % create Info (corresponds to the solution z_Opt: dual variable, cost, KKT, natural residual)
 Info.gamma_h             = gamma_h;
-Info.cost_ocp            = J_ocp;
-Info.cost_penalty        = J_penalty;
+Info.cost_ocp            = full(NLP.FuncObj.J_ocp(z, p));
+Info.cost_penalty        = full(NLP.FuncObj.J_penalty(z, p));
 Info.KKT_error_primal    = KKT_error_primal;
 Info.KKT_error_dual      = KKT_error_dual;
 Info.VI_natural_residual = self.evaluate_natural_residual(z);

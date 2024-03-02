@@ -38,26 +38,9 @@ FuncObj.J_ocp_hessian = sparse(J_ocp_hessian_func(zeros(nlp.Dim.z, 1))); % const
 [J_penalty_hessian, ~] = hessian(nlp.J_penalty, nlp.z);
 FuncObj.J_penalty_hessian = Function('J_penalty_hessian', {nlp.z, nlp.p}, {J_penalty_hessian}, {'z', 'p'}, {'J_penalty_hessian'});
 
-%% terms used in self written solver
-% D gap function, gradient and hessian
+% D gap function
 if isfield(nlp, 'D_gap_func')
     FuncObj.D_gap_func = Function('D_gap_func', {nlp.z}, {nlp.D_gap_func}, {'z'}, {'D_gap_func'});
-end
-if isfield(nlp, 'D_gap_grad')
-    FuncObj.D_gap_grad = Function('D_gap_grad', {nlp.z}, {nlp.D_gap_grad}, {'z'}, {'D_gap_grad'});
-end
-if isfield(nlp, 'D_gap_hessian')
-    FuncObj.D_gap_hessian = Function('D_gap_hessian', {nlp.z}, {nlp.D_gap_hessian}, {'z'}, {'D_gap_hessian'});
-end
-% huber function, gradient and hessian
-if isfield(nlp, 'Huber_func')
-    FuncObj.Huber_func = Function('Huber_func', {nlp.v}, {nlp.Huber_func}, {'v'}, {'Huber_func'});
-end
-if isfield(nlp, 'Huber_grad')
-    FuncObj.Huber_grad = Function('Huber_grad', {nlp.v}, {nlp.Huber_grad}, {'v'}, {'Huber_grad'});
-end
-if isfield(nlp, 'Huber_hessian')
-    FuncObj.Huber_hessian = Function('Huber_hessian', {nlp.v}, {nlp.Huber_hessian}, {'v'}, {'Huber_hessian'});
 end
 
 end

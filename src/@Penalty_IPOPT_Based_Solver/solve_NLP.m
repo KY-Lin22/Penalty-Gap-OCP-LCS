@@ -100,7 +100,7 @@ while true
     Log.timeElapsed(j) = self.Solver.stats.t_wall_total; % self.Solver.t_proc_total;
     if mod(j, 10) == 1
         disp('---------------------------------------------------------------------------------------------------------------------------------')
-        headMsg = ' step  |param(mu)| cost(ocp/penalty) | KKT(primal/dual)| alpha_p(min/ave)| alpha_d(min/ave)| nat_res | iterNum | time(s) ';
+        headMsg = ' step  |param(mu)| cost(ocp/penalty)  | KKT(primal/dual)| alpha_p(min/ave)| alpha_d(min/ave)| nat_res | iterNum | time(s) ';
         disp(headMsg)
     end
     prevIterMsg = [' ',...

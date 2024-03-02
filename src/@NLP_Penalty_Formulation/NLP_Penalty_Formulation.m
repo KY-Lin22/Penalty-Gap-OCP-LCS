@@ -17,19 +17,13 @@ classdef NLP_Penalty_Formulation < handle
             'gap_based',...
             'complementarity_based'...
             })} = 'gap_based' 
-        gap_penalty_strategy char {mustBeMember(gap_penalty_strategy, {...
-            'func_direct',...
-            'grad_cvx_over_nonlinear'...
-            })} = 'grad_cvx_over_nonlinear' 
         CHKS_param double {mustBeNonnegative} = 1e-5 % used in CHKS smoothing function for max(0, x)
-        Huber_param double = 0.1 % used in pseudo Huber loss function, ref: SCP survey 2021, F.Messerer et.al.
         D_gap_param_a double {mustBeNonnegative} = 0.9; % D gap function parameters: b > a > 0 (a ref value: a = 0.9, b = 1.1)
         D_gap_param_b double {mustBeNonnegative} = 1.1; % Ref: Theoretical and numerical investigation of the D-gap function   
                                                         % for BVI, 1998, Mathematical Programming, C.Kanzow & M. Fukushima
     end
     properties
         D_gap_func % function object, scalar D gap function (1 x 1 -> 1)
-        D_gap_grad % function object, scalar D gap function gradient (1 x 1 -> [1 X 2])
     end
     properties
         z % symbolic variable, includes all the variable to be optimized,
@@ -51,14 +45,8 @@ classdef NLP_Penalty_Formulation < handle
             if isfield(Option, 'penalty_problem')
                 self.penalty_problem = Option.penalty_problem;
             end
-            if isfield(Option, 'gap_penalty_strategy')
-                self.gap_penalty_strategy = Option.gap_penalty_strategy;
-            end
             if isfield(Option, 'CHKS_param')
                 self.CHKS_param = Option.CHKS_param;
-            end
-            if isfield(Option, 'Huber_param')
-                self.Huber_param = Option.Huber_param;
             end
             if isfield(Option, 'D_gap_param_a')
                 self.D_gap_param_a = Option.D_gap_param_a;
@@ -67,20 +55,12 @@ classdef NLP_Penalty_Formulation < handle
                 self.D_gap_param_b = Option.D_gap_param_b;
             end
 
-            %% specify properties about function object that may be used in NLP reformulation 
-            [D_gap_func, D_gap_grad] = self.create_D_gap_func();
-            self.D_gap_func = D_gap_func;
-            self.D_gap_grad = D_gap_grad;
-
             %% discretize OCP into NLP
             switch self.penalty_problem
                 case 'gap_based'
-                    switch self.gap_penalty_strategy
-                        case 'func_direct'
-                            nlp = self.create_penalty_gap_func_direct_NLP(OCP);
-                        case 'grad_cvx_over_nonlinear'
-                            nlp = self.create_penalty_gap_grad_cvx_over_nonlinear_NLP(OCP);
-                    end
+                    D_gap_func = self.create_D_gap_func();
+                    self.D_gap_func = D_gap_func;
+                    nlp = self.create_penalty_gap_NLP(OCP);
                 case 'complementarity_based'
                     nlp = self.create_penalty_complementarity_NLP(OCP);
             end
@@ -100,7 +80,6 @@ classdef NLP_Penalty_Formulation < handle
             disp('*----------------------------------- NLP Information ------------------------------------*')
             disp('1. Problem Parameter')
             disp(['CHKS parameter: ....................... ', num2str(self.CHKS_param, '%10.3e')])
-            disp(['Huber parameter: ...................... ', num2str(self.Huber_param, '%10.3e')])
             disp(['D gap parameter (a / b): .............. ', num2str(self.D_gap_param_a), ' / ', num2str(self.D_gap_param_b)])
             disp('2. Problem Size')
             disp(['number of decision variable (z): ...... ', num2str(self.Dim.z)])
@@ -113,11 +92,9 @@ classdef NLP_Penalty_Formulation < handle
 
     %% Other methods
     methods
-        [D_gap_func, D_gap_grad] = create_D_gap_func(self)
+        D_gap_func = create_D_gap_func(self)
 
-        nlp = create_penalty_gap_func_direct_NLP(self, OCP)
-
-        nlp = create_penalty_gap_grad_cvx_over_nonlinear_NLP(self, OCP)
+        nlp = create_penalty_gap_NLP(self, OCP)
 
         nlp = create_penalty_complementarity_NLP(self, OCP)
 

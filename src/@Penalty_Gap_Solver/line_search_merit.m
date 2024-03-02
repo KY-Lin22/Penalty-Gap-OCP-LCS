@@ -1,4 +1,4 @@
-function [z_k, Info] = line_search_merit(self, beta, z, dz, p, J_ocp, J_penalty, h, J_grad)
+function [z_k, Info] = line_search_merit(self, beta, z, dz, p, J, h, J_grad)
 %UNTITLED2 Summary of this function goes here
 %   Detailed explanation goes here
 
@@ -31,7 +31,7 @@ else
     beta_k = beta_Trial + 1;
 end
 % merit and its directional derivative 
-merit = J_ocp + J_penalty + beta_k * M;
+merit = J + beta_k * M;
 merit_DD = J_DD - beta_k * M;
 
 %% backtracking line search
@@ -44,10 +44,7 @@ while ~has_found_new_iterate
      stepSize_trial = max([stepSize_init, stepSize_min]);
      z_trial = z + stepSize_trial * dz;
      % cost and constraint
-     J_ocp_trial = full(NLP.FuncObj.J_ocp(z_trial, p));
-     D_gap_grad_trial = full(NLP.FuncObj.D_gap_grad(z_trial));
-     J_penalty_trial = p(1) * full(NLP.FuncObj.Huber_func(D_gap_grad_trial));
-
+     J_trial = full(NLP.FuncObj.J(z_trial, p));
      h_trial = full(NLP.FuncObj.h(z_trial, p));
      % constraint infeasibility
      if Option.LineSearch.scaling_constraint_violation
@@ -56,7 +53,7 @@ while ~has_found_new_iterate
          M_trial = norm(h_trial, 1);
      end
      % merit
-     merit_trial = J_ocp_trial + J_penalty_trial + beta_k * M_trial;
+     merit_trial = J_trial + beta_k * M_trial;
 
      %% Step 2: check sufficient decrease condition
      if merit_trial <= merit + stepSize_trial * nu_D * merit_DD
@@ -87,9 +84,7 @@ switch status
     case 1
         % success, return the new iterate
         z_k = z_trial;
-        Info.J_ocp = J_ocp_trial;
-        Info.D_gap_grad = D_gap_grad_trial;
-        Info.J_penalty = J_penalty_trial;
+        Info.J = J_trial;
         Info.h = h_trial;
         Info.beta = beta_k;
         Info.stepSize = stepSize_trial;

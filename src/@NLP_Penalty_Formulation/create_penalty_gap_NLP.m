@@ -1,4 +1,4 @@
-function nlp = create_penalty_gap_func_direct_NLP(self, OCP)
+function nlp = create_penalty_gap_NLP(self, OCP)
 %UNTITLED Summary of this function goes here
 %   Detailed explanation goes here
 % formulate a penalty gap function based NLP
@@ -61,6 +61,7 @@ D_gap_func_map = self.D_gap_func.map(OCP.Dim.lambda*OCP.nStages);
 f_map = OCP.FuncObj.f.map(OCP.nStages);
 % complementarity function
 g_map = OCP.FuncObj.g.map(OCP.nStages);
+
 %% formulate NLP function (stagewise)
 % stage cost
 L_S_stage = L_S_map(X, U, LAMBDA);

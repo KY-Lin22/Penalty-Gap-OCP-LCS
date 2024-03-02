@@ -25,12 +25,17 @@ self.Option.printLevel = 0; % do not print each homotopy problem iteration infor
 
 NLP = self.NLP;
 Option = self.Option;
-
 % check input z_Init
 if ~all(size(z_Init) == [NLP.Dim.z, 1])
     error('z_Init has wrong dimension')
 end
-
+% check parameter
+if ~all(size(p_Init) == [NLP.Dim.p, 1])
+    error('p_Init has wrong dimension')
+end
+if ~all(size(p_End) == [NLP.Dim.p, 1])
+    error('p_End has wrong dimension')
+end
 % check penalty parameter
 if (p_Init(1) < 0) || (p_End(1) < 0)
     error('penalty parameter mu (i.e., p_1) should be nonnegative')
@@ -63,8 +68,7 @@ Log.param               = zeros(continuationStepMaxNum, 1); % mu
 Log.cost                = zeros(continuationStepMaxNum, 2); % [ocp, penalty]
 Log.KKT_error           = zeros(continuationStepMaxNum, 2); % [primal, dual]
 if Option.recordLevel == 1
-    Log.stepSize_primal     = zeros(continuationStepMaxNum, 2); % [min, average]
-    Log.stepSize_dual       = zeros(continuationStepMaxNum, 2); % [min, average]
+    Log.stepSize = zeros(continuationStepMaxNum, 2); % [min, average]
 end
 Log.VI_natural_residual = zeros(continuationStepMaxNum, 1);
 Log.iterNum             = zeros(continuationStepMaxNum, 1);
@@ -78,8 +82,8 @@ while true
     %% step 1: solve a NLP with given p
     [z_Opt_j, Info_j] = self.solve_NLP_single(z_Init_j, p_j);
     dual_var_Opt_j = full(Info_j.gamma_h);
-    J_ocp_j = full(NLP.FuncObj.J_ocp(z_Opt_j, p_j));
-    J_penalty_j = full(NLP.FuncObj.J_penalty(z_Opt_j, p_j));
+    J_ocp_j = Info_j.cost_ocp;
+    J_penalty_j = Info_j.cost_penalty;
     KKT_error_primal_j = Info_j.KKT_error_primal;
     KKT_error_dual_j = Info_j.KKT_error_dual; 
     VI_nat_res_j = Info_j.VI_natural_residual;
@@ -96,15 +100,14 @@ while true
     Log.cost(j, :) = [J_ocp_j, J_penalty_j];
     Log.KKT_error(j, :) = [KKT_error_primal_j, KKT_error_dual_j];
     if Option.recordLevel == 1
-        Log.stepSize_primal(j, :) = [min(Info_j.Log.stepSize), sum(Info_j.Log.stepSize)/(Info_j.iterNum)];
-        Log.stepSize_dual(j, :) = [min(Info_j.Log.stepSize), sum(Info_j.Log.stepSize)/(Info_j.iterNum)];
+        Log.stepSize(j, :) = [min(Info_j.Log.stepSize), sum(Info_j.Log.stepSize)/(Info_j.iterNum)];
     end
     Log.VI_natural_residual(j) = VI_nat_res_j;
     Log.iterNum(j) = Info_j.iterNum;
     Log.timeElapsed(j) = Info_j.Time.total;
     if mod(j, 10) == 1
         disp('---------------------------------------------------------------------------------------------------------------------------------')
-        headMsg = ' step  | param(mu)| cost(ocp/penalty) | KKT(primal/dual)| alpha_p(min/ave)| alpha_d(min/ave)| nat_res | iterNum | time(s) ';
+        headMsg = ' step  | param(mu)| cost(ocp/penalty) | KKT(primal/dual)|stepSize(min/ave)| nat_res | iterNum | time(s) ';
         disp(headMsg)
     end
     prevIterMsg = [' ',...
@@ -112,8 +115,7 @@ while true
         num2str(Log.param(j, 1), '%10.1e'), ' | ',...
         num2str(Log.cost(j, 1), '%10.2e'), ' ', num2str(Log.cost(j, 2), '%10.2e'),' | ',...
         num2str(Log.KKT_error(j, 1), '%10.1e'), ' ', num2str(Log.KKT_error(j, 2), '%10.1e'),' | ',...
-        num2str(Log.stepSize_primal(j, 1), '%10.1e'), ' ', num2str(Log.stepSize_primal(j, 2), '%10.1e'), ' | ',...
-        num2str(Log.stepSize_dual(j, 1), '%10.1e'), ' ' , num2str(Log.stepSize_dual(j, 2), '%10.1e'),' | ',...
+        num2str(Log.stepSize(j, 1), '%10.1e'), ' ', num2str(Log.stepSize(j, 2), '%10.1e'), ' | ',...
         num2str(Log.VI_natural_residual(j), '%10.1e'),' |   ',...
         num2str(Log.iterNum(j), '%10.4d'),'  | ',...
         num2str(Log.timeElapsed(j), '%10.4f')];
@@ -169,8 +171,7 @@ while true
         Info.Log.param = Log.param(1 : j, :);
         Info.Log.cost = Log.cost(1 : j, :);
         Info.Log.KKT_error = Log.KKT_error(1 : j, :);
-        Info.Log.stepSize_primal = Log.stepSize_primal(1 : j, :);
-        Info.Log.stepSize_dual = Log.stepSize_dual(1 : j, :);
+        Info.Log.stepSize = Log.stepSize(1 : j, :);
         Info.Log.VI_natural_residual = Log.VI_natural_residual(1 : j, :);
         Info.Log.iterNum = Log.iterNum(1 : j, :);
         Info.Log.timeElapsed = Log.timeElapsed(1 : j, :);

@@ -56,17 +56,17 @@ while true
     h = full(NLP.FuncObj.h(z, p));
     % cost Jacobian
     J_grad = full(NLP.FuncObj.J_grad(z, p));
-    % penalty hessian (exact)
-    J_penalty_hessian = sparse(NLP.FuncObj.J_penalty_hessian(z, p));
-    % penalty hessian (regularization)
-    Z = reshape(z, NLP.Dim.z_Node(end), OCP.nStages);
-    LAMBDA = Z(NLP.Dim.z_Node(2) + 1 : NLP.Dim.z_Node(3), :);
-    ETA = Z(NLP.Dim.z_Node(3) + 1 : NLP.Dim.z_Node(4), :);
-    lambda = reshape(LAMBDA, [], 1);
-    eta = reshape(ETA, [], 1); 
-    w = ((NLP.D_gap_param_b*lambda > eta) .* (eta > NLP.D_gap_param_a*lambda))';
-    regular_hessian = sparse(NLP.FuncObj.regular_hessian(z, p, w));
-    J_penalty_hessian = J_penalty_hessian + regular_hessian;
+    % penalty hessian 
+    switch Option.penalty_hessian_regularization
+        case 0
+            % without regularization
+            J_penalty_hessian = sparse(NLP.FuncObj.J_penalty_hessian(z, p));
+        case 1
+            % with regularization
+            w = full(NLP.FuncObj.w(z));
+            J_penalty_hessian = sparse(NLP.FuncObj.J_penalty_hessian_regular(z, p, w));
+    end
+
     % KKT error (L_inf norm)
     KKT_error_primal = norm(h, inf);
     KKT_error_dual = norm(J_grad + gamma_h' * NLP.FuncObj.h_grad, inf);

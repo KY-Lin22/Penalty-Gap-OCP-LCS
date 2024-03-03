@@ -30,15 +30,21 @@ J_ocp_hessian_func = Function('J_ocp_hessian_func', {nlp.z}, {J_ocp_hessian}, {'
 FuncObj.J_ocp_hessian = sparse(J_ocp_hessian_func(zeros(nlp.Dim.z, 1))); % constant matrix
 
 [J_penalty_hessian, ~] = hessian(nlp.J_penalty, nlp.z);
-FuncObj.J_penalty_hessian = Function('J_penalty_hessian', {nlp.z, nlp.p}, {J_penalty_hessian}, {'z', 'p'}, {'J_penalty_hessian'});
+FuncObj.J_penalty_hessian = Function('J_penalty_hessian',...
+    {nlp.z, nlp.p}, {J_penalty_hessian}, {'z', 'p'}, {'J_penalty_hessian'});
 
 % D gap function
 if isfield(nlp, 'D_gap_func')
     FuncObj.D_gap_func = Function('D_gap_func', {nlp.z}, {nlp.D_gap_func}, {'z'}, {'D_gap_func'});
 end
-if isfield(nlp, 'w')
+
+% regular penalty cost hessian
+if isfield(nlp, 'regular_func_w')
+    FuncObj.w = Function('w', {nlp.z}, {nlp.w_formula}, {'z'}, {'w'});
     [regular_hessian, ~] = hessian(nlp.regular_func_w, nlp.z);
-    FuncObj.regular_hessian = Function('regular_hessian', {nlp.z, nlp.p, nlp.w}, {regular_hessian}, {'z', 'p', 'w'}, {'regular_hessian'});
+    J_penalty_hessian_regular = J_penalty_hessian + regular_hessian;
+    FuncObj.J_penalty_hessian_regular = Function('J_penalty_hessian_regular',...
+        {nlp.z, nlp.p, nlp.w}, {J_penalty_hessian_regular}, {'z', 'p', 'w'}, {'J_penalty_hessian_regular'});
 end
 
 end

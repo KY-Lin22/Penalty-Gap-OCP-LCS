@@ -24,6 +24,7 @@ classdef NLP_Penalty_Formulation < handle
     end
     properties
         D_gap_func % function object, scalar D gap function (1 x 1 -> 1)
+        regular_func % function object, scalar regular function (1 x 1 -> 1)
     end
     properties
         z % symbolic variable, includes all the variable to be optimized,
@@ -54,12 +55,17 @@ classdef NLP_Penalty_Formulation < handle
             if isfield(Option, 'D_gap_param_b')
                 self.D_gap_param_b = Option.D_gap_param_b;
             end
-
+            if self.D_gap_param_b <= self.D_gap_param_a
+                error('D gap function parameter should satisfy: b > a > 0')
+            end
+            
             %% discretize OCP into NLP
             switch self.penalty_problem
                 case 'gap_based'
                     D_gap_func = self.create_D_gap_func();
+                    regular_func = self.create_regular_func();
                     self.D_gap_func = D_gap_func;
+                    self.regular_func = regular_func;
                     nlp = self.create_penalty_gap_NLP(OCP);
                 case 'complementarity_based'
                     nlp = self.create_penalty_complementarity_NLP(OCP);
@@ -93,6 +99,8 @@ classdef NLP_Penalty_Formulation < handle
     %% Other methods
     methods
         D_gap_func = create_D_gap_func(self)
+
+        regular_func = create_regular_func(self)
 
         nlp = create_penalty_gap_NLP(self, OCP)
 

@@ -24,7 +24,6 @@ function nlp = create_penalty_complementarity_NLP(self, OCP)
 %        (3) J: cost function J = J_ocp + J_penalty
 %            J_ocp = sum(J_stage_n)*dt
 %            J_penalty = mu*sum(sum(lambda_n .* eta_n))
-%            with J_stage_n:   stage cost defined in OCP
 %        (4) h: equality constraint arranged in a stagewise manner
 %            h = [h_1;...h_n;...h_N] and 
 %            h_n = [x_{n-1} - x_n + f(x_n, u_n, lambda_n)*dt;
@@ -33,8 +32,7 @@ function nlp = create_penalty_complementarity_NLP(self, OCP)
 %            c_n = [lambda_n;
 %                   eta_n];
 % output: nlp is a structure with fields:
-%         z: variable
-%         p: parameter
+%         z, p: variable and parameter
 %         J, h, c: cost and constraint function,  
 %         J_ocp, J_penalty: cost term
 %         Dim: problem size

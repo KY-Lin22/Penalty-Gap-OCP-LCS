@@ -16,11 +16,8 @@ function [z_Opt, Info] = solve_NLP_single(self, z_Init, p)
 % Output:
 %          z_Opt: double, NLP.Dim.z X 1, optimal solution found by solver
 %          Info: struct, record the iteration information
-%% check option and input
-% check option (TODO: write a function)
-if self.Option.printLevel == 2
-    self.Option.recordLevel = 1;
-end
+%% check input
+OCP = self.OCP;
 NLP = self.NLP;
 Option = self.Option;
 % check input z_Init and p
@@ -35,35 +32,13 @@ if (p(1) < 0)
     error('penalty parameter mu (i.e, p_1) should be nonnegative')
 end
 
-%% create record for time and log
-% time
-Time = struct('gradEval', 0, 'searchDirection', 0, 'lineSearch', 0, 'else', 0, 'total', 0);
-% log 
-if Option.recordLevel == 1
-    Log.cost      = zeros(Option.maxIterNum, 2); % [ocp, penalty]
-    Log.gap       = zeros(Option.maxIterNum, 1); %  max D_gap_func_res
-    Log.KKT_error = zeros(Option.maxIterNum, 2); % [primal, dual]   
-    Log.dzNorm    = zeros(Option.maxIterNum, 1);
-    Log.beta      = zeros(Option.maxIterNum, 1); 
-    Log.stepSize  = zeros(Option.maxIterNum, 1);
-    Log.merit     = zeros(Option.maxIterNum, 2); % [merit, merit_k]
-end
+%% iteration routine (z: previous iterate z_{k-1}, z_k: current iterate z_{k}) 
+% time record
+Time = struct('gradEval', 0, 'searchDirection', 0, 'else', 0, 'total', 0);
 
-%% prepare the first iteration (z: previous iterate z_{k-1}, z_k: current iterate z_{k}) 
-% polish z_Init (TODO)
-
-% counter, beta, z, multipler, cost and constraint function
 k = 1;
-beta = Option.LineSearch.betaInit;
 z = z_Init;
 gamma_h = zeros(NLP.Dim.h, 1);
-J = full(NLP.FuncObj.J(z, p));
-h = full(NLP.FuncObj.h(z, p));
-
-% constant matrix
-h_grad = NLP.FuncObj.h_grad;
-
-%% iteration routine 
 while true
     %% step 0: check iteration counter
     if k > Option.maxIterNum
@@ -77,22 +52,24 @@ while true
     %% step 1: Jacobian, Hessian, KKT error and gap evaluation of previous iterate z
     timeStart_gradEval = tic;
 
+    % constraint
+    h = full(NLP.FuncObj.h(z, p));
     % cost Jacobian
     J_grad = full(NLP.FuncObj.J_grad(z, p));
     % penalty hessian (exact)
     J_penalty_hessian = sparse(NLP.FuncObj.J_penalty_hessian(z, p));
-
     % penalty hessian (regularization)
-
-    % regular_hessian = [];
-
-    % penalty Hessian
-    % J_penalty_hessian = J_penalty_hessian + regular_hessian;
-
-
+    Z = reshape(z, NLP.Dim.z_Node(end), OCP.nStages);
+    LAMBDA = Z(NLP.Dim.z_Node(2) + 1 : NLP.Dim.z_Node(3), :);
+    ETA = Z(NLP.Dim.z_Node(3) + 1 : NLP.Dim.z_Node(4), :);
+    lambda = reshape(LAMBDA, [], 1);
+    eta = reshape(ETA, [], 1); 
+    w = ((NLP.D_gap_param_b*lambda > eta) .* (eta > NLP.D_gap_param_a*lambda))';
+    regular_hessian = sparse(NLP.FuncObj.regular_hessian(z, p, w));
+    J_penalty_hessian = J_penalty_hessian + regular_hessian;
     % KKT error (L_inf norm)
     KKT_error_primal = norm(h, inf);
-    KKT_error_dual = norm(J_grad + gamma_h' * h_grad, inf);
+    KKT_error_dual = norm(J_grad + gamma_h' * NLP.FuncObj.h_grad, inf);
 
     timeElasped_gradEval = toc(timeStart_gradEval);
 
@@ -133,85 +110,44 @@ while true
         break
     end  
 
-    %% step 4: merit line search
-    timeStart_lineSearch = tic;
-
-    [z_k, Info_LineSearch] = self.line_search_merit(beta, z, dz, p, J, h, J_grad);
-    % check status
-    if Info_LineSearch.status == 0
-        % failure case 3: line search fails
-        terminalStatus = -2;
-        terminalMsg = ['- Solver fails: ', 'because merit line search reaches the min stepsize'];        
-        break
-    else
-        % extract quantities (J, h) associated with z_k
-        J_k      = Info_LineSearch.J;
-        h_k      = Info_LineSearch.h;
-        beta_k   = Info_LineSearch.beta;
-        stepSize = Info_LineSearch.stepSize;
-        merit    = Info_LineSearch.merit;
-    end  
-    timeElasped_lineSearch = toc(timeStart_lineSearch);
-
-    %% step 5: record and print information of this iteration k
+    %% step 4: record and print information of this iteration k
     timeElasped_total = toc(timeStart_total);
 
     Time.gradEval = Time.gradEval + timeElasped_gradEval;
-    Time.searchDirection = Time.searchDirection + timeElasped_searchDirection;
-    Time.lineSearch = Time.lineSearch + timeElasped_lineSearch;    
+    Time.searchDirection = Time.searchDirection + timeElasped_searchDirection;   
     Time.total = Time.total + timeElasped_total;
-
-    if Option.recordLevel == 1
-        % record
-        Log.cost(k, :)      = [full(NLP.FuncObj.J_ocp(z, p)), full(NLP.FuncObj.J_penalty(z, p))];
-        Log.gap(k, :)       = norm(full(NLP.FuncObj.D_gap_func(z)), inf);
-        Log.KKT_error(k, :) = [KKT_error_primal, KKT_error_dual];        
-        Log.dzNorm(k)       = dzNorm;
-        Log.beta(k)         = beta_k;
-        Log.stepSize(k)     = stepSize;    
-        Log.merit(k, :)     = merit;
-        % print
-        if Option.printLevel == 2
-            % head
-            if mod(k, 10) == 1
-                disp('----------------------------------------------------------------------------------------------------------------------------------------------------')
-                headMsg = ' Iter | cost(ocp)| cost(pen)|  gapRes  |  KKT(P)  |  KKT(D)  |  dzNorm  |   beta   | stepsize |  merit   | merit(t) | time(ms) |';
-                disp(headMsg)
-            end
-            % previous iterate message
-            prevIterMsg = [' ',...
-                num2str(k,'%10.3d'),'  | ',...
-                num2str(Log.cost(k, 1),'%10.2e'), ' | ',...
-                num2str(Log.cost(k, 2),'%10.2e'), ' | ',...
-                num2str(Log.gap(k, 1), '%10.2e'), ' | ',...
-                num2str(Log.KKT_error(k, 1), '%10.2e'), ' | ',...
-                num2str(Log.KKT_error(k, 2), '%10.2e'), ' | ',...
-                num2str(Log.dzNorm(k),'%10.2e'), ' | ',...
-                num2str(Log.beta(k),'%10.2e'), ' | ',...
-                num2str(Log.stepSize(k),'%10.2e'), ' | ',...
-                num2str(Log.merit(k, 1),'%10.2e'), ' | ',...
-                num2str(Log.merit(k, 2),'%10.2e'), ' | ',...
-                num2str(1000 * timeElasped_total,'%10.2e'), ' | '];
-            disp(prevIterMsg)
+    % print
+    if Option.printLevel == 2
+        % head
+        if mod(k, 10) == 1
+            disp('----------------------------------------------------------------------------------------')
+            headMsg = ' Iter | cost(ocp/penalty) |  gapRes  | KKT(primal/dual)|  dzNorm  | time(ms) |';
+            disp(headMsg)
         end
-
+        % previous iterate message
+        prevIterMsg = [' ',...
+            num2str(k,'%10.3d'),'  | ',...
+            num2str(full(NLP.FuncObj.J_ocp(z, p)), '%10.2e'), ' ',...
+            num2str(full(NLP.FuncObj.J_penalty(z, p)), '%10.2e'),' | ',...
+            num2str(norm(full(NLP.FuncObj.D_gap_func(z)), inf), '%10.2e'), ' | ',...
+            num2str(KKT_error_primal, '%10.1e'), ' ',...
+            num2str(KKT_error_dual, '%10.1e'),' | ',...
+            num2str(dzNorm,'%10.2e'), ' | ',...
+            num2str(1000 * timeElasped_total,'%10.2e'), ' | '];
+        disp(prevIterMsg)
     end
 
-    %% step 6: prepare next iteration
+    %% step 5: prepare next iteration
     k = k + 1;
-    beta = beta_k;
-    z = z_k;
-    gamma_h = gamma_h + stepSize * (gamma_h_k - gamma_h);
-    J = J_k;
-    h = h_k;
+    z = z + dz;
+    gamma_h = gamma_h_k;
 end
-
 
 %% return optimal solution and create information
 % return previous iterate as solution
 z_Opt = z;
 % create Info (basic: time, iterNum, terminalStatus)
-Time.else = Time.total - Time.searchDirection - Time.lineSearch - Time.gradEval;
+Time.else = Time.total - Time.searchDirection - Time.gradEval;
 Info.Time = Time;
 Info.iterNum = k - 1;
 Info.terminalStatus = terminalStatus;
@@ -223,16 +159,6 @@ Info.cost_penalty        = full(NLP.FuncObj.J_penalty(z, p));
 Info.KKT_error_primal    = KKT_error_primal;
 Info.KKT_error_dual      = KKT_error_dual;
 Info.VI_natural_residual = self.evaluate_natural_residual(z);
-% create Info (log)
-if Option.recordLevel == 1
-    Info.Log.cost      = Log.cost(1 : k - 1, :);
-    Info.Log.gap       = Log.gap(1 : k - 1, :);
-    Info.Log.KKT_error = Log.KKT_error(1 : k - 1, :);
-    Info.Log.dzNorm    = Log.dzNorm(1 : k - 1, :);
-    Info.Log.beta      = Log.beta(1 : k - 1, :);
-    Info.Log.stepSize  = Log.stepSize(1 : k - 1, :);
-    Info.Log.merit     = Log.merit(1 : k - 1, :);
-end
 % display termination and solution message, then break rountie
 if (Option.printLevel == 1) || (Option.printLevel == 2)
     disp('*------------------ Solution Information ------------------*')

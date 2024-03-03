@@ -22,18 +22,15 @@ import casadi.*
 %% check option and input
 % check option (TODO)
 self.Option.printLevel = 0; % do not print each homotopy problem iteration information
-
-NLP = self.NLP;
-Option = self.Option;
 % check input z_Init
-if ~all(size(z_Init) == [NLP.Dim.z, 1])
+if ~all(size(z_Init) == [self.NLP.Dim.z, 1])
     error('z_Init has wrong dimension')
 end
 % check parameter
-if ~all(size(p_Init) == [NLP.Dim.p, 1])
+if ~all(size(p_Init) == [self.NLP.Dim.p, 1])
     error('p_Init has wrong dimension')
 end
-if ~all(size(p_End) == [NLP.Dim.p, 1])
+if ~all(size(p_End) == [self.NLP.Dim.p, 1])
     error('p_End has wrong dimension')
 end
 % check penalty parameter
@@ -43,9 +40,6 @@ end
 if p_Init(1) > p_End(1)
     error('mu_Init should not larger than mu_End')
 end
-% load parameter
-kappa_mu_times = Option.Homotopy.kappa_mu_times;
-VI_nat_res_tol = Option.Homotopy.VI_nat_res_tol;
 
 %% create record for time and log 
 % evaluate the max number of continuation step based on given mu_Init, mu_End 
@@ -58,7 +52,7 @@ while true
     if mu_test == mu_End
         break
     else        
-        mu_test = min([kappa_mu_times * mu_test, mu_End]);
+        mu_test = min([self.Option.Homotopy.kappa_mu_times * mu_test, mu_End]);
         continuationStepMaxNum = continuationStepMaxNum + 1;
     end
 end
@@ -104,7 +98,7 @@ while true
 
     %% step 3: check ternimation based on the current homotopy iterate
     solver_stats = Info_j.terminalStatus;
-    if (solver_stats == 1) && (VI_nat_res_j <= VI_nat_res_tol)
+    if (solver_stats == 1) && (VI_nat_res_j <= self.Option.Homotopy.VI_nat_res_tol)
         % IPOPT at this homotopy iteration finds the optimal solution satisfying the desired VI natural residual
         exitFlag = true;
         terminalStatus = 1;
@@ -126,7 +120,7 @@ while true
         z_Init_j = z_Opt_j;
         % update penalty parameter
         mu_j = p_j(1);
-        mu_j = min([kappa_mu_times * mu_j, mu_End]);
+        mu_j = min([self.Option.Homotopy.kappa_mu_times * mu_j, mu_End]);
         % update parameter vector
         p_j(1) = mu_j;
         % update continuation step counter

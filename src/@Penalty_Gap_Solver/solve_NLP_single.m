@@ -17,14 +17,11 @@ function [z_Opt, Info] = solve_NLP_single(self, z_Init, p)
 %          z_Opt: double, NLP.Dim.z X 1, optimal solution found by solver
 %          Info: struct, record the iteration information
 %% check input
-OCP = self.OCP;
-NLP = self.NLP;
-Option = self.Option;
 % check input z_Init and p
-if ~all(size(z_Init) == [NLP.Dim.z, 1])
+if ~all(size(z_Init) == [self.NLP.Dim.z, 1])
     error('z_Init has wrong dimension')
 end
-if ~all(size(p) == [NLP.Dim.p, 1])
+if ~all(size(p) == [self.NLP.Dim.p, 1])
     error('p has wrong dimension')
 end
 % check parameter
@@ -35,13 +32,16 @@ end
 %% iteration routine (z: previous iterate z_{k-1}, z_k: current iterate z_{k}) 
 % time record
 Time = struct('gradEval', 0, 'searchDirection', 0, 'else', 0, 'total', 0);
+% load constant matrix
+h_grad = self.NLP.FuncObj.h_grad; 
+KKT_matrix_constant = self.KKT_matrix_constant;
 
 k = 1;
 z = z_Init;
-gamma_h = zeros(NLP.Dim.h, 1);
+gamma_h = zeros(self.NLP.Dim.h, 1);
 while true
     %% step 0: check iteration counter
-    if k > Option.maxIterNum
+    if k > self.Option.maxIterNum
         % failure case 1: exceed the maximum number of iteration
         terminalStatus = 0;
         terminalMsg = ['- Solver fails: ', 'because the maximum number of iteration exceeded'];
@@ -53,23 +53,24 @@ while true
     timeStart_gradEval = tic;
 
     % constraint
-    h = full(NLP.FuncObj.h(z, p));
+    h = full(self.NLP.FuncObj.h(z, p));
     % cost Jacobian
-    J_grad = full(NLP.FuncObj.J_grad(z, p));
+    J_grad = full(self.NLP.FuncObj.J_grad(z, p));
     % penalty hessian 
-    switch Option.penalty_hessian_regularization
+    switch self.Option.penalty_hessian_regularization
         case 0
             % without regularization
-            J_penalty_hessian = sparse(NLP.FuncObj.J_penalty_hessian(z, p));
+            J_penalty_hessian = sparse(self.NLP.FuncObj.J_penalty_hessian(z, p));
         case 1
             % with regularization
-            w = full(NLP.FuncObj.w(z));
-            J_penalty_hessian = sparse(NLP.FuncObj.J_penalty_hessian_regular(z, p, w));
+            w = full(self.NLP.FuncObj.w(z));
+            J_penalty_hessian = sparse(self.NLP.FuncObj.J_penalty_hessian_regular(z, p, w));
     end
 
     % KKT error (L_inf norm)
+    LAG_grad_z = J_grad + gamma_h' * h_grad;
     KKT_error_primal = norm(h, inf);
-    KKT_error_dual = norm(J_grad + gamma_h' * NLP.FuncObj.h_grad, inf);
+    KKT_error_dual = norm(LAG_grad_z, inf);
 
     timeElasped_gradEval = toc(timeStart_gradEval);
 
@@ -81,29 +82,29 @@ while true
     % KKT matrix
     [i_J_pen_hess, j_J_pen_hess, s_J_pen_hess] = find(J_penalty_hessian);
     KKT_matrix_update = sparse(i_J_pen_hess, j_J_pen_hess, s_J_pen_hess,...
-        NLP.Dim.z + NLP.Dim.h, NLP.Dim.z + NLP.Dim.h, length(s_J_pen_hess));
-    KKT_matrix = self.KKT_matrix_constant + KKT_matrix_update;
+        self.NLP.Dim.z + self.NLP.Dim.h, self.NLP.Dim.z + self.NLP.Dim.h, length(s_J_pen_hess));
+    KKT_matrix = KKT_matrix_constant + KKT_matrix_update;
     % solve linear system
     dz_gamma_h_k = KKT_matrix\KKT_residual;
     % extract primal and dual part
-    dz = dz_gamma_h_k(1 : NLP.Dim.z, 1);
-    gamma_h_k = dz_gamma_h_k(NLP.Dim.z + 1 : end, 1);
+    dz = dz_gamma_h_k(1 : self.NLP.Dim.z, 1);
+    gamma_h_k = dz_gamma_h_k(self.NLP.Dim.z + 1 : end, 1);
     dzNorm = norm(dz, inf);
 
     timeElasped_searchDirection = toc(timeStart_searchDirection);
 
     %% step 3: check whether we can terminate successfully based on the previous iterate z
-    if max([KKT_error_primal, KKT_error_dual]) < Option.tol.KKT_error_total
+    if max([KKT_error_primal, KKT_error_dual]) < self.Option.tol.KKT_error_total
         % Success case 1: the KKT error satisfies tolerance
         terminalStatus = 1;
         terminalMsg = ['- Solver succeeds: ', 'because the KKT error satisfies tolerance'];
         break
-    elseif dzNorm < Option.tol.dzNorm
+    elseif dzNorm < self.Option.tol.dzNorm
         % Success case 2: the norm of search direction satisfies tolerance
         terminalStatus = 1;
         terminalMsg = ['- Solver succeeds: ', 'because the norm of search direction satisfies tolerance'];      
         break
-    elseif (KKT_error_primal <= Option.tol.KKT_error_primal) && (KKT_error_dual <= Option.tol.KKT_error_dual)
+    elseif (KKT_error_primal <= self.Option.tol.KKT_error_primal) && (KKT_error_dual <= self.Option.tol.KKT_error_dual)
         % Success case 3: primal and dual error satisfy tolerance
         terminalStatus = 1;
         terminalMsg = ['- Solver succeeds: ', 'because primal and dual error satisfy tolerance']; 
@@ -117,7 +118,7 @@ while true
     Time.searchDirection = Time.searchDirection + timeElasped_searchDirection;   
     Time.total = Time.total + timeElasped_total;
     % print
-    if Option.printLevel == 2
+    if self.Option.printLevel == 2
         % head
         if mod(k, 10) == 1
             disp('----------------------------------------------------------------------------------------')
@@ -127,9 +128,9 @@ while true
         % previous iterate message
         prevIterMsg = [' ',...
             num2str(k,'%10.3d'),'  | ',...
-            num2str(full(NLP.FuncObj.J_ocp(z, p)), '%10.2e'), ' ',...
-            num2str(full(NLP.FuncObj.J_penalty(z, p)), '%10.2e'),' | ',...
-            num2str(norm(full(NLP.FuncObj.D_gap_func(z)), inf), '%10.2e'), ' | ',...
+            num2str(full(self.NLP.FuncObj.J_ocp(z, p)), '%10.2e'), ' ',...
+            num2str(full(self.NLP.FuncObj.J_penalty(z, p)), '%10.2e'),' | ',...
+            num2str(norm(full(self.NLP.FuncObj.D_gap_func(z)), inf), '%10.2e'), ' | ',...
             num2str(KKT_error_primal, '%10.1e'), ' ',...
             num2str(KKT_error_dual, '%10.1e'),' | ',...
             num2str(dzNorm,'%10.2e'), ' | ',...
@@ -154,13 +155,13 @@ Info.terminalStatus = terminalStatus;
 Info.terminalMsg = terminalMsg;
 % create Info (corresponds to the solution z_Opt: dual variable, cost, KKT, natural residual)
 Info.gamma_h             = gamma_h;
-Info.cost_ocp            = full(NLP.FuncObj.J_ocp(z, p));
-Info.cost_penalty        = full(NLP.FuncObj.J_penalty(z, p));
+Info.cost_ocp            = full(self.NLP.FuncObj.J_ocp(z, p));
+Info.cost_penalty        = full(self.NLP.FuncObj.J_penalty(z, p));
 Info.KKT_error_primal    = KKT_error_primal;
 Info.KKT_error_dual      = KKT_error_dual;
 Info.VI_natural_residual = self.evaluate_natural_residual(z);
 % display termination and solution message, then break rountie
-if (Option.printLevel == 1) || (Option.printLevel == 2)
+if (self.Option.printLevel == 1) || (self.Option.printLevel == 2)
     disp('*------------------ Solution Information ------------------*')
     disp('1. Terminal Status')
     disp(Info.terminalMsg)

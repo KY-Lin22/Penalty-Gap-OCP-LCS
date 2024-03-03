@@ -57,7 +57,7 @@ while true
     end
 end
 % record
-Time = struct('gradEval', 0, 'searchDirection', 0, 'else', 0, 'total', 0);
+Time = struct('gradEval', 0, 'searchDirection', 0, 'lineSearch', 0, 'else', 0, 'total', 0);
 iterNum = 0;
 
 %% continuation loop (j: continuation step counter)
@@ -78,6 +78,7 @@ while true
     %% step 2: record and print information of the current continuation iterate
     Time.gradEval        = Time.gradEval        + Info_j.Time.gradEval;
     Time.searchDirection = Time.searchDirection + Info_j.Time.searchDirection;
+    Time.lineSearch      = Time.lineSearch      + Info_j.Time.lineSearch;
     Time.else            = Time.else            + Info_j.Time.else;
     Time.total           = Time.total           + Info_j.Time.total;  
     iterNum              = iterNum              + iterNum_j;

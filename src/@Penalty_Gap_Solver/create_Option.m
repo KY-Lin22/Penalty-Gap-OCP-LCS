@@ -19,6 +19,15 @@ Option.tol.dzNorm = 1e-8;
 Option.penalty_hessian_regularization = 1; % 0: without regularization
                                            % 1: with regularization
 
+%% Option for merit line search
+Option.LineSearch.betaInit = 1; % initial penalty parameter
+Option.LineSearch.rho = 0.1; % desired extend for the negativity of merit function directional derivative
+Option.LineSearch.stepSize_Min = 1e-4;
+Option.LineSearch.stepSize_DecayRate = 0.5;% choose in (0,1)
+Option.LineSearch.nu_D = 1e-4;% desired merit function reduction, default 1e-4
+
+Option.LineSearch.scaling_constraint_violation = true; %
+
 %% Option for homotopy
 Option.Homotopy.kappa_mu_times = 1.2;
 Option.Homotopy.VI_nat_res_tol = 1e-2;

@@ -2,29 +2,19 @@ function [z_k, Info] = line_search_merit(self, beta, z, dz, p, J, h, J_grad)
 %UNTITLED2 Summary of this function goes here
 %   Detailed explanation goes here
 
-OCP = self.OCP;
-NLP = self.NLP;
-Option = self.Option;
-
-% load parameter
-stepSize_min = Option.LineSearch.stepSize_Min;
-stepSize_decayRate = Option.LineSearch.stepSize_DecayRate;
-rho = Option.LineSearch.rho;
-nu_D = Option.LineSearch.nu_D;
-
 %% some quantities at current iterate z
 % directional derivative of cost
 J_DD = J_grad * dz;
 % constraint violation M 
 % - L1 norm follows IPOPT, and also the cost is the sum of stage cost
-if Option.LineSearch.scaling_constraint_violation
+if self.Option.LineSearch.scaling_constraint_violation
     % - scaled by time step to consistent with the ocp cost that has been scaled
-    M = OCP.timeStep * norm(h, 1);
+    M = self.OCP.timeStep * norm(h, 1);
 else
     M = norm(h, 1);
 end
 % penalty parameter
-beta_Trial = (J_DD)/((1 - rho) * M);
+beta_Trial = (J_DD)/((1 - self.Option.LineSearch.rho) * M);
 if beta >= beta_Trial
     beta_k = beta;
 else
@@ -41,14 +31,14 @@ stepSize_init = 1;
 while ~has_found_new_iterate
      %% Step 1: estimate trial stepsize, iterate, cost, infeasibility and merit
      % step size and z
-     stepSize_trial = max([stepSize_init, stepSize_min]);
+     stepSize_trial = max([stepSize_init, self.Option.LineSearch.stepSize_Min]);
      z_trial = z + stepSize_trial * dz;
      % cost and constraint
-     J_trial = full(NLP.FuncObj.J(z_trial, p));
-     h_trial = full(NLP.FuncObj.h(z_trial, p));
+     J_trial = full(self.NLP.FuncObj.J(z_trial, p));
+     h_trial = full(self.NLP.FuncObj.h(z_trial, p));
      % constraint infeasibility
-     if Option.LineSearch.scaling_constraint_violation
-         M_trial = OCP.timeStep * norm(h_trial, 1);
+     if self.Option.LineSearch.scaling_constraint_violation
+         M_trial = self.OCP.timeStep * norm(h_trial, 1);
      else
          M_trial = norm(h_trial, 1);
      end
@@ -56,20 +46,20 @@ while ~has_found_new_iterate
      merit_trial = J_trial + beta_k * M_trial;
 
      %% Step 2: check sufficient decrease condition
-     if merit_trial <= merit + stepSize_trial * nu_D * merit_DD
+     if merit_trial <= merit + stepSize_trial * self.Option.LineSearch.nu_D * merit_DD
          has_found_new_iterate = true;
          status = 1;
      end
 
      %% Step 3: checking min stepsize
     if ~has_found_new_iterate
-        if stepSize_trial == stepSize_min
+        if stepSize_trial == self.Option.LineSearch.stepSize_Min
             % linesearch fails on the min stepsize, break backtracking linesearch procedure
             status = 0;
             break
         else
             % estimate a smaller stepsize
-            stepSize_init = stepSize_decayRate * stepSize_init;
+            stepSize_init = self.Option.LineSearch.stepSize_DecayRate * stepSize_init;
         end
     end     
 

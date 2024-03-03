@@ -21,12 +21,12 @@ solver.Option.tol.dzNorm = 1e-8;
 solver.Option.penalty_hessian_regularization = 1;
 solver.Option.Homotopy.kappa_mu_times = 1.2;
 solver.Option.Homotopy.VI_nat_res_tol = 1e-2;
-z_Init = ones(NLP.Dim.z, 1);
-% p = 10;
-% [z_Opt, Info] = solver.solve_NLP_single(z_Init, p);
-p_Init = 10;
-p_End = 20;
-[z_Opt, Info] = solver.solve_NLP(z_Init, p_Init, p_End);
+z_Init = randn(NLP.Dim.z, 1);
+p = 10;
+[z_Opt, Info] = solver.solve_NLP_single(z_Init, p);
+% p_Init = 10;
+% p_End = 20;
+% [z_Opt, Info] = solver.solve_NLP(z_Init, p_Init, p_End);
 
 %% show result
 plotResult_Vieira_LCS_analytic(OCP, NLP, z_Opt)

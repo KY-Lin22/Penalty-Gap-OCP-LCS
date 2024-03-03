@@ -15,17 +15,17 @@ solver = Penalty_Gap_Solver(OCP, NLP);
 %% set option and solve problem
 solver.Option.maxIterNum = 500;
 solver.Option.tol.KKT_error_primal = 1e-6; 
-solver.Option.tol.KKT_error_dual = 1e-2; 
+solver.Option.tol.KKT_error_dual = 1e-4; 
 solver.Option.tol.KKT_error_total = 1e-6; 
 solver.Option.tol.dzNorm = 1e-8;
-solver.Option.penalty_hessian_regularization = 0;
-solver.Option.Homotopy.kappa_mu_times = 1.5;
+solver.Option.penalty_hessian_regularization = 1;
+solver.Option.Homotopy.kappa_mu_times = 1.2;
 solver.Option.Homotopy.VI_nat_res_tol = 1e-2;
-z_Init = ones(NLP.Dim.z, 1);
-% p = 10;
+z_Init = randn(NLP.Dim.z, 1);
+% p = 1;
 % [z_Opt, Info] = solver.solve_NLP_single(z_Init, p);
-p_Init = 100;
-p_End = 500;
+p_Init = 1;
+p_End = 200;
 [z_Opt, Info] = solver.solve_NLP(z_Init, p_Init, p_End);
 
 %% show result

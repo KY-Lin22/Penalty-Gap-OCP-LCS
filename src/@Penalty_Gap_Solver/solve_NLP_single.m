@@ -31,14 +31,17 @@ end
 
 %% iteration routine (z: previous iterate z_{k-1}, z_k: current iterate z_{k}) 
 % time record
-Time = struct('gradEval', 0, 'searchDirection', 0, 'else', 0, 'total', 0);
+Time = struct('gradEval', 0, 'searchDirection', 0, 'lineSearch', 0, 'else', 0, 'total', 0);
 % load constant matrix
 h_grad = self.NLP.FuncObj.h_grad; 
 KKT_matrix_constant = self.KKT_matrix_constant;
 
 k = 1;
+beta = self.Option.LineSearch.betaInit;
 z = z_Init;
 gamma_h = zeros(self.NLP.Dim.h, 1);
+J = full(self.NLP.FuncObj.J(z, p));
+h = full(self.NLP.FuncObj.h(z, p));
 while true
     %% step 0: check iteration counter
     if k > self.Option.maxIterNum
@@ -52,8 +55,6 @@ while true
     %% step 1: Jacobian, Hessian, KKT error and gap evaluation of previous iterate z
     timeStart_gradEval = tic;
 
-    % constraint
-    h = full(self.NLP.FuncObj.h(z, p));
     % cost Jacobian
     J_grad = full(self.NLP.FuncObj.J_grad(z, p));
     % penalty hessian 
@@ -111,18 +112,39 @@ while true
         break
     end  
 
-    %% step 4: record and print information of this iteration k
+    %% step 4: merit line search
+    timeStart_lineSearch = tic;
+
+    [z_k, Info_LineSearch] = self.line_search_merit(beta, z, dz, p, J, h, J_grad);
+    % check status
+    if Info_LineSearch.status == 0
+        % failure case 3: line search fails
+        terminalStatus = -2;
+        terminalMsg = ['- Solver fails: ', 'because merit line search reaches the min stepsize'];        
+        break
+    else
+        % extract quantities (J, h) associated with z_k
+        J_k      = Info_LineSearch.J;
+        h_k      = Info_LineSearch.h;
+        beta_k   = Info_LineSearch.beta;
+        stepSize = Info_LineSearch.stepSize;
+        merit    = Info_LineSearch.merit;
+    end  
+    timeElasped_lineSearch = toc(timeStart_lineSearch);
+
+    %% step 5: record and print information of this iteration k
     timeElasped_total = toc(timeStart_total);
 
     Time.gradEval = Time.gradEval + timeElasped_gradEval;
-    Time.searchDirection = Time.searchDirection + timeElasped_searchDirection;   
+    Time.searchDirection = Time.searchDirection + timeElasped_searchDirection; 
+    Time.lineSearch = Time.lineSearch + timeElasped_lineSearch;
     Time.total = Time.total + timeElasped_total;
     % print
     if self.Option.printLevel == 2
         % head
         if mod(k, 10) == 1
             disp('----------------------------------------------------------------------------------------')
-            headMsg = ' Iter | cost(ocp/penalty) |  gapRes  | KKT(primal/dual)|  dzNorm  | time(ms) |';
+            headMsg = ' Iter | cost(ocp/penalty) |  gapRes  | KKT(primal/dual)|  dzNorm  |   beta   | stepsize |  merit   | merit(t) | time(ms) |';
             disp(headMsg)
         end
         % previous iterate message
@@ -134,21 +156,28 @@ while true
             num2str(KKT_error_primal, '%10.1e'), ' ',...
             num2str(KKT_error_dual, '%10.1e'),' | ',...
             num2str(dzNorm,'%10.2e'), ' | ',...
+            num2str(beta_k,'%10.2e'), ' | ',...
+            num2str(stepSize,'%10.2e'), ' | ',...
+            num2str(merit(1),'%10.2e'), ' | ',...
+            num2str(merit(2),'%10.2e'), ' | ',...
             num2str(1000 * timeElasped_total,'%10.2e'), ' | '];
         disp(prevIterMsg)
     end
 
-    %% step 5: prepare next iteration
+    %% step 6: prepare next iteration
     k = k + 1;
-    z = z + dz;
-    gamma_h = gamma_h_k;
+    beta = beta_k;
+    z = z_k;
+    gamma_h = gamma_h + stepSize * (gamma_h_k - gamma_h);
+    J = J_k;
+    h = h_k;
 end
 
 %% return optimal solution and create information
 % return previous iterate as solution
 z_Opt = z;
 % create Info (basic: time, iterNum, terminalStatus)
-Time.else = Time.total - Time.searchDirection - Time.gradEval;
+Time.else = Time.total - Time.gradEval - Time.searchDirection - Time.lineSearch;
 Info.Time = Time;
 Info.iterNum = k - 1;
 Info.terminalStatus = terminalStatus;

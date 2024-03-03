@@ -8,7 +8,7 @@ Option.printLevel = 2; % 0: print nothing;
                        % 2: print results and iteration log (should specified recordLevel as 1)
 
 %% Option for tolerance
-Option.maxIterNum = 100;
+Option.maxIterNum = 500;
 
 Option.tol.KKT_error_primal = 1e-6;
 Option.tol.KKT_error_dual = 1e-4;

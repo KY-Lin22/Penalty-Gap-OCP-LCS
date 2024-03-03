@@ -3,7 +3,7 @@ clc
 
 %% create OCP, NLP, and solver
 % construct OCP problem
-OCP = OCP_Vieira_LCS_analytic();
+OCP = OCP_Vieira_LCS_relative_degree_one();
 Option.penalty_problem = 'complementarity_based'; % 'gap_based', 'complementarity_based'
 Option.CHKS_param = 0;
 Option.D_gap_param_a = 0.95;
@@ -23,4 +23,4 @@ p_End = 20;
 [z_Opt, Info] = solver.solve_NLP(z_Init, p_Init, p_End);
 
 %% show result
-plotResult_Vieira_LCS_analytic(OCP, NLP, z_Opt)
+plotResult_Vieira_LCS_relative_degree_one(OCP, NLP, z_Opt)

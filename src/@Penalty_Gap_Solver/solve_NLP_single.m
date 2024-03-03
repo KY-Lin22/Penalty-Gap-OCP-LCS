@@ -160,7 +160,7 @@ Info.cost_penalty        = full(self.NLP.FuncObj.J_penalty(z, p));
 Info.KKT_error_primal    = KKT_error_primal;
 Info.KKT_error_dual      = KKT_error_dual;
 Info.VI_natural_residual = self.evaluate_natural_residual(z);
-% display termination and solution message, then break rountie
+% display termination and solution message
 if (self.Option.printLevel == 1) || (self.Option.printLevel == 2)
     disp('*------------------ Solution Information ------------------*')
     disp('1. Terminal Status')

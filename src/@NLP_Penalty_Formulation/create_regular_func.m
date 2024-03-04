@@ -8,6 +8,13 @@ param_b = self.D_gap_param_b;
 % symbolic variable
 u = SX.sym('u', 1, 1);
 v = SX.sym('v', 1, 1);
-f = param_a/2*u^2 - u*v + 1/(2*param_b)*v^2; % negative D gap concave part
+
+% using negative D gap concave part
+% f = param_a/2*u^2 - u*v + 1/(2*param_b)*v^2; 
+
+% using negative eigenvalue to construct a quadratic term
+nega_eig = min(eig([-param_a, 1; 1, -1/param_b]));
+regular_param = -nega_eig;
+f = regular_param*(u^2 + v^2);
 regular_func = Function('regular_func', {u, v}, {f}, {'u', 'v'}, {'f'});
 end

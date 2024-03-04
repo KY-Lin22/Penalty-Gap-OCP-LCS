@@ -30,8 +30,6 @@ if (p(1) < 0)
 end
 
 %% iteration routine (z: previous iterate z_{k-1}, z_k: current iterate z_{k}) 
-% polish z_Init
-z_Init = self.polish_initial_guess(z_Init);
 % time record
 Time = struct('gradEval', 0, 'searchDirection', 0, 'lineSearch', 0, 'else', 0, 'total', 0);
 % load constant matrix

@@ -4,7 +4,7 @@ clc
 %% create OCP, NLP, and solver
 % construct OCP problem
 OCP = OCP_Vieira_LCS_higher_dim();
-Option.penalty_problem = 'gap_based'; % 'gap_based', 'gap_polar_based', 'complementarity_based'
+Option.penalty_problem = 'complementarity_based'; % 'gap_based', 'gap_polar_based', 'complementarity_based'
 Option.CHKS_param = 0;
 Option.D_gap_param_a = 0.95;
 Option.D_gap_param_b = 1;

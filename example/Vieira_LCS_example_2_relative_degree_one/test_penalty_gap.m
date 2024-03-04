@@ -22,11 +22,11 @@ solver.Option.penalty_hessian_regularization = 1;
 solver.Option.Homotopy.kappa_mu_times = 1.5;
 solver.Option.Homotopy.VI_nat_res_tol = 1e-2;
 z_Init = randn(NLP.Dim.z, 1);
-p = 0.1;
-[z_Opt, Info] = solver.solve_NLP_single(z_Init, p);
-% p_Init = 0.1;
-% p_End = 20;
-% [z_Opt, Info] = solver.solve_NLP(z_Init, p_Init, p_End);
+% p = 0.1;
+% [z_Opt, Info] = solver.solve_NLP_single(z_Init, p);
+p_Init = 0.1;
+p_End = 20;
+[z_Opt, Info] = solver.solve_NLP(z_Init, p_Init, p_End);
 
 %% show result
 plotResult_Vieira_LCS_relative_degree_one(OCP, NLP, z_Opt)

@@ -61,6 +61,8 @@ Time = struct('gradEval', 0, 'searchDirection', 0, 'lineSearch', 0, 'else', 0, '
 iterNum = 0;
 
 %% continuation loop (j: continuation step counter)
+% polish z_Init
+z_Init = self.polish_initial_guess(z_Init);
 z_Init_j = z_Init;
 p_j = p_Init; 
 j = 1;

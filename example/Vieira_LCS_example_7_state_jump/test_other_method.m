@@ -4,10 +4,10 @@ clc
 %% create OCP, NLP, and solver
 % construct OCP problem
 OCP = OCP_Vieira_LCS_state_jump();
-Option.penalty_problem = 'complementarity_based'; % 'gap_based', 'complementarity_based'
+Option.penalty_problem = 'gap_based'; % 'gap_based', 'complementarity_based'
 Option.CHKS_param = 0;
-Option.D_gap_param_a = 0.95;
-Option.D_gap_param_b = 1;
+Option.D_gap_param_a = 0.1;
+Option.D_gap_param_b = 10;
 NLP = NLP_Penalty_Formulation(OCP, Option);
 
 solver = Penalty_IPOPT_Based_Solver(OCP, NLP);

@@ -24,8 +24,8 @@ solver.Option.Homotopy.VI_nat_res_tol = 1e-2;
 z_Init = randn(NLP.Dim.z, 1);
 % p = 1;
 % [z_Opt, Info] = solver.solve_NLP_single(z_Init, p);
-p_Init = 1;
-p_End = 200;
+p_Init = 1e0;
+p_End = 1e4;
 [z_Opt, Info] = solver.solve_NLP(z_Init, p_Init, p_End);
 
 %% show result

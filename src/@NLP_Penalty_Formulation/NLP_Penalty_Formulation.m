@@ -15,6 +15,7 @@ classdef NLP_Penalty_Formulation < handle
     properties
         penalty_problem char {mustBeMember(penalty_problem, {...
             'gap_based',...
+            'gap_polar_based', ...
             'complementarity_based'...
             })} = 'gap_based' 
         CHKS_param double {mustBeNonnegative} = 1e-5 % used in CHKS smoothing function for max(0, x)
@@ -25,6 +26,7 @@ classdef NLP_Penalty_Formulation < handle
     properties
         D_gap_func % function object, scalar D gap function (1 x 1 -> 1)
         regular_func % function object, scalar regular function (1 x 1 -> 1)
+        polar_func % function object, scalar transfer function (1 x 1 -> 1 x 1）
     end
     properties
         z % symbolic variable, includes all the variable to be optimized,
@@ -67,6 +69,12 @@ classdef NLP_Penalty_Formulation < handle
                     self.D_gap_func = D_gap_func;
                     self.regular_func = regular_func;
                     nlp = self.create_penalty_gap_NLP(OCP);
+                case 'gap_polar_based'
+                    D_gap_func = self.create_D_gap_func();
+                    polar_func = self.create_polar_func(OCP);
+                    self.D_gap_func = D_gap_func;
+                    self.polar_func = polar_func;
+                    nlp = self.create_penalty_gap_polar_NLP(OCP);
                 case 'complementarity_based'
                     nlp = self.create_penalty_complementarity_NLP(OCP);
             end
@@ -102,7 +110,11 @@ classdef NLP_Penalty_Formulation < handle
 
         regular_func = create_regular_func(self)
 
+        polar_func = create_polar_func(self, OCP)
+
         nlp = create_penalty_gap_NLP(self, OCP)
+
+        nlp = create_penalty_gap_polar_NLP(self, OCP)
 
         nlp = create_penalty_complementarity_NLP(self, OCP)
 

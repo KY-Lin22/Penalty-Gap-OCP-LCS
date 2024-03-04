@@ -30,6 +30,8 @@ if (p(1) < 0)
 end
 
 %% iteration routine (z: previous iterate z_{k-1}, z_k: current iterate z_{k}) 
+% polish z_Init
+z_Init = self.polish_initial_guess(z_Init);
 % time record
 Time = struct('gradEval', 0, 'searchDirection', 0, 'lineSearch', 0, 'else', 0, 'total', 0);
 % load constant matrix
@@ -67,7 +69,7 @@ while true
             w = full(self.NLP.FuncObj.w(z));
             J_penalty_hessian = sparse(self.NLP.FuncObj.J_penalty_hessian_regular(z, p, w));
     end
-
+    J_penalty_hessian = J_penalty_hessian + self.Option.penalty_hessian_additional_regular_param * speye(self.NLP.Dim.z);
     % KKT error (L_inf norm)
     LAG_grad_z = J_grad + gamma_h' * h_grad;
     KKT_error_primal = norm(h, inf);

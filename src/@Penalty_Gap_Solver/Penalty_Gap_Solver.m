@@ -54,6 +54,9 @@ classdef Penalty_Gap_Solver < handle
         % create solver option
         Option = create_Option(self) 
 
+        % polish initial guess
+        z_Init = polish_initial_guess(self, z_Init)
+
         % solving only single NLP with given p
         [z_Opt, Info] = solve_NLP_single(self, z_Init, p)
 

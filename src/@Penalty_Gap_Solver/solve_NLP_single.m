@@ -115,7 +115,7 @@ while true
     %% step 4: merit line search
     timeStart_lineSearch = tic;
 
-    [z_k, Info_LineSearch] = self.line_search_merit(beta, z, dz, p, J, h, J_grad);
+    [z_k, Info_LineSearch] = self.line_search_merit(beta, z, dz, p, J, h, J_grad, J_penalty_hessian);
     % check status
     if Info_LineSearch.status == 0
         % failure case 3: line search fails

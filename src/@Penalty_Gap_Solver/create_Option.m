@@ -26,6 +26,7 @@ Option.LineSearch.stepSize_Min = 1e-4;
 Option.LineSearch.stepSize_DecayRate = 0.5;% choose in (0,1)
 Option.LineSearch.nu_D = 1e-4;% desired merit function reduction, default 1e-4
 
+Option.LineSearch.using_Hessian = true;
 Option.LineSearch.scaling_constraint_violation = true; %
 
 %% Option for homotopy

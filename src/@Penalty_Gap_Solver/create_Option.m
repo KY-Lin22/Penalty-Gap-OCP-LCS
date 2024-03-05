@@ -10,9 +10,9 @@ Option.printLevel = 2; % 0: print nothing;
 %% Option for tolerance
 Option.maxIterNum = 500;
 
-Option.tol.KKT_error_primal = 1e-6;
-Option.tol.KKT_error_dual = 1e-4;
-Option.tol.KKT_error_total = 1e-6;
+Option.tol.KKT_error_primal = 1e-8;
+Option.tol.KKT_error_dual = 1e-6;
+Option.tol.KKT_error_total = 1e-8;
 Option.tol.dzNorm = 1e-8;
 
 %% Option for initial guess

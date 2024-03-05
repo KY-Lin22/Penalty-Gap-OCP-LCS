@@ -65,9 +65,9 @@ while true
         case 1
             % with regularization
             w = full(self.NLP.FuncObj.w(z));
-            J_penalty_hessian = sparse(self.NLP.FuncObj.J_penalty_hessian_regular(z, p, w));
+            J_penalty_hessian = sparse(self.NLP.FuncObj.J_penalty_hessian_regular(z, p, w)) ...
+                + self.Option.penalty_hessian_additional_regular_param * speye(self.NLP.Dim.z);
     end
-    J_penalty_hessian = J_penalty_hessian + self.Option.penalty_hessian_additional_regular_param * speye(self.NLP.Dim.z);
     % KKT error (L_inf norm)
     LAG_grad_z = J_grad + gamma_h' * h_grad;
     KKT_error_primal = norm(h, inf);

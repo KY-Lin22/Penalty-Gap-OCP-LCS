@@ -14,9 +14,9 @@ solver = Penalty_Gap_Solver(OCP, NLP);
 
 %% set option and solve problem
 solver.Option.maxIterNum = 500;
-solver.Option.tol.KKT_error_primal = 1e-6; 
+solver.Option.tol.KKT_error_primal = 1e-8; 
 solver.Option.tol.KKT_error_dual = 1e-6; 
-solver.Option.tol.KKT_error_total = 1e-6; 
+solver.Option.tol.KKT_error_total = 1e-8; 
 solver.Option.tol.dzNorm = 1e-8;
 solver.Option.penalty_hessian_regularization = 1;
 solver.Option.Homotopy.kappa_mu_times = 1.2;
@@ -24,7 +24,7 @@ solver.Option.Homotopy.VI_nat_res_tol = 1e-2;
 z_Init = randn(NLP.Dim.z, 1);
 % p = 10;
 % [z_Opt, Info] = solver.solve_NLP_single(z_Init, p);
-p_Init = 1e1;
+p_Init = 1e0;
 p_End = 1e4;
 [z_Opt, Info] = solver.solve_NLP(z_Init, p_Init, p_End);
 

@@ -19,7 +19,7 @@ for i = 1 : numel(OCP_problem_set)
     for j = 1 : numel(NLP_option_set)
         OCP_i = OCP_problem_set{i};
         NLP_option_j = NLP_option_set{j};
-        NLP_i_j = NLP_Penalty_Formulation(OCP_i, NLP_option_j);
+        NLP_i_j = NLP_Formulation(OCP_i, NLP_option_j);
         NLP_problem_set{i, j} = NLP_i_j;
     end
 end
@@ -30,12 +30,17 @@ for i = 1 : size(NLP_problem_set, 1)
     for j = 1 : size(NLP_problem_set, 2)
         OCP_i = OCP_problem_set{i};
         NLP_i_j = NLP_problem_set{i, j};
-        switch NLP_i_j.penalty_problem
-            case 'gap_based'
-                solver_i_j = Penalty_Gap_Solver(OCP_i, NLP_i_j);
-            case 'complementarity_based'
-                solver_i_j = Penalty_IPOPT_Based_Solver(OCP_i, NLP_i_j);
-        end        
+        switch NLP_i_j.reformulation_strategy
+            case 'relaxation'
+                solver_i_j = IPOPT_Based_Solver(OCP_i, NLP_i_j);
+            case 'penalty'
+                switch NLP_i_j.penalty_problem
+                    case 'gap_based'
+                        solver_i_j = Penalty_Gap_Solver(OCP_i, NLP_i_j);
+                    case 'complementarity_based'
+                        solver_i_j = IPOPT_Based_Solver(OCP_i, NLP_i_j);
+                end
+        end
         % homotopy option
         solver_i_j.Option.Homotopy.kappa_mu_times = solver_Option.kappa_mu_times;
         solver_i_j.Option.Homotopy.VI_nat_res_tol = solver_Option.VI_nat_res_tol;

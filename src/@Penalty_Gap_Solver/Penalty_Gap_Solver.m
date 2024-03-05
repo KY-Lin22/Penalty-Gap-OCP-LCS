@@ -9,7 +9,8 @@ classdef Penalty_Gap_Solver < handle
     properties
         OCP % struct, optimal control problem
         NLP % struct, nonlinear programming problem (discretized OCP)
-        KKT_matrix_constant % struct, constant part of the KKT matrix
+        QP_solver % object, default: osqp
+        KKT_matrix_constant % struct, constant part of the KKT matrix (only available when NLP.Dim.c = 0)
         Option % struct, IPOPT solver option
     end
     
@@ -22,25 +23,26 @@ classdef Penalty_Gap_Solver < handle
             % properties: OCP and NLP
             self.OCP = OCP;
             self.NLP = NLP;   
+            %  properties: QP_solver
+            self.QP_solver = osqp;
             % properties: KKT_matrix_constant
-            J_ocp_hessian = NLP.FuncObj.J_ocp_hessian;
-            h_grad = NLP.FuncObj.h_grad;
-            
-            [i_J_ocp_hessian, j_J_ocp_hessian, s_J_ocp_hessian] = find(J_ocp_hessian);
+            if NLP.Dim.c == 0
+                [i_J_ocp_hessian, j_J_ocp_hessian, s_J_ocp_hessian] = find(NLP.FuncObj.J_ocp_hessian);
 
-            [i_h_grad, j_h_grad, s_h_grad] = find(h_grad);
-            i_h_grad = i_h_grad + NLP.Dim.z;
+                [i_h_grad, j_h_grad, s_h_grad] = find(NLP.FuncObj.h_grad);
+                i_h_grad = i_h_grad + NLP.Dim.z;
 
-            i_h_grad_T = j_h_grad;
-            j_h_grad_T = i_h_grad;
-            s_h_grad_T = s_h_grad;
-            
-            i_KKT = [i_J_ocp_hessian; i_h_grad; i_h_grad_T];
-            j_KKT = [j_J_ocp_hessian; j_h_grad; j_h_grad_T];
-            s_KKT = [s_J_ocp_hessian; s_h_grad; s_h_grad_T];
-            KKT_matrix_constant = sparse(i_KKT, j_KKT, s_KKT, NLP.Dim.z + NLP.Dim.h, NLP.Dim.z + NLP.Dim.h, length(s_KKT));
+                i_h_grad_T = j_h_grad;
+                j_h_grad_T = i_h_grad;
+                s_h_grad_T = s_h_grad;
 
-            self.KKT_matrix_constant = KKT_matrix_constant;
+                i_KKT = [i_J_ocp_hessian; i_h_grad; i_h_grad_T];
+                j_KKT = [j_J_ocp_hessian; j_h_grad; j_h_grad_T];
+                s_KKT = [s_J_ocp_hessian; s_h_grad; s_h_grad_T];
+                self.KKT_matrix_constant = sparse(i_KKT, j_KKT, s_KKT,...
+                    NLP.Dim.z + NLP.Dim.h, NLP.Dim.z + NLP.Dim.h, length(s_KKT));
+            end
+
             % properties: solver option
             self.Option = self.create_Option();    
 
@@ -62,6 +64,9 @@ classdef Penalty_Gap_Solver < handle
 
         % solve a sequence of NLP in a homotopy manner from p_Init to p_End 
         [z_Opt, Info] = solve_NLP(self, z_Init, p_Init, p_End)
+
+        % evaluate search direction
+        [dz, gamma_h_k, Info] = evaluate_search_direction(self, h, J_grad, J_penalty_hessian)
 
         % merit line search 
         [z_k, Info] = line_search_merit(self, beta, z, dz, p, J, h, J_grad, J_penalty_hessian)

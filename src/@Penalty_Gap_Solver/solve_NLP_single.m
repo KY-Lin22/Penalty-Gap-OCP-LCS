@@ -78,19 +78,18 @@ while true
     %% step 2: search direction evaluation based on previous iterate z
     timeStart_searchDirection = tic;
 
-    % KKT residual
-    KKT_residual = [-J_grad'; -h];
-    % KKT matrix
-    [i_J_pen_hess, j_J_pen_hess, s_J_pen_hess] = find(J_penalty_hessian);
-    KKT_matrix_update = sparse(i_J_pen_hess, j_J_pen_hess, s_J_pen_hess,...
-        self.NLP.Dim.z + self.NLP.Dim.h, self.NLP.Dim.z + self.NLP.Dim.h, length(s_J_pen_hess));
-    KKT_matrix = KKT_matrix_constant + KKT_matrix_update;
-    % solve linear system
-    dz_gamma_h_k = KKT_matrix\KKT_residual;
-    % extract primal and dual part
-    dz = dz_gamma_h_k(1 : self.NLP.Dim.z, 1);
-    gamma_h_k = dz_gamma_h_k(self.NLP.Dim.z + 1 : end, 1);
-    dzNorm = norm(dz, inf);
+    [dz, gamma_h_k, Info_SearchDirection] = self.evaluate_search_direction(h, J_grad, J_penalty_hessian);
+
+    % check status
+    if Info_SearchDirection.status == 0
+        % failure case 2: qp solver fails
+        terminalStatus = -1;
+        terminalMsg = ['- Solver fails: ', Info_SearchDirection.msg];
+        break
+    else
+        % dzNorm (L_inf norm)
+        dzNorm = norm(dz, inf);
+    end
 
     timeElasped_searchDirection = toc(timeStart_searchDirection);
 

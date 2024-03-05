@@ -34,7 +34,6 @@ end
 Time = struct('gradEval', 0, 'searchDirection', 0, 'lineSearch', 0, 'else', 0, 'total', 0);
 % load constant matrix
 h_grad = self.NLP.FuncObj.h_grad; 
-KKT_matrix_constant = self.KKT_matrix_constant;
 
 k = 1;
 beta = self.Option.LineSearch.betaInit;
@@ -115,20 +114,12 @@ while true
     timeStart_lineSearch = tic;
 
     [z_k, Info_LineSearch] = self.line_search_merit(beta, z, dz, p, J, h, J_grad, J_penalty_hessian);
-    % check status
-    if Info_LineSearch.status == 0
-        % failure case 3: line search fails
-        terminalStatus = -2;
-        terminalMsg = ['- Solver fails: ', 'because merit line search reaches the min stepsize'];        
-        break
-    else
-        % extract quantities (J, h) associated with z_k
-        J_k      = Info_LineSearch.J;
-        h_k      = Info_LineSearch.h;
-        beta_k   = Info_LineSearch.beta;
-        stepSize = Info_LineSearch.stepSize;
-        merit    = Info_LineSearch.merit;
-    end  
+    J_k      = Info_LineSearch.J;
+    h_k      = Info_LineSearch.h;
+    beta_k   = Info_LineSearch.beta;
+    stepSize = Info_LineSearch.stepSize;
+    merit    = Info_LineSearch.merit;
+    
     timeElasped_lineSearch = toc(timeStart_lineSearch);
 
     %% step 5: record and print information of this iteration k

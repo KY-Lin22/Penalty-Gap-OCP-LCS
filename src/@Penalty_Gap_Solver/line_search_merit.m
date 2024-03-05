@@ -14,13 +14,7 @@ else
     M = norm(h, 1);
 end
 % penalty parameter
-if self.Option.LineSearch.using_Hessian
-    J_ocp_hessian = self.NLP.FuncObj.J_ocp_hessian;
-    beta_Trial = (J_DD + 1/2*dz'*(J_ocp_hessian + J_penalty_hessian)*dz)/((1 - self.Option.LineSearch.rho) * M);
-else
-    beta_Trial = (J_DD)/((1 - self.Option.LineSearch.rho) * M);
-end
-
+beta_Trial = (J_DD)/((1 - self.Option.LineSearch.rho) * M);
 if beta >= beta_Trial
     beta_k = beta;
 else
@@ -54,14 +48,27 @@ while ~has_found_new_iterate
      %% Step 2: check sufficient decrease condition
      if merit_trial <= merit + stepSize_trial * self.Option.LineSearch.nu_D * merit_DD
          has_found_new_iterate = true;
-         status = 1;
      end
 
      %% Step 3: checking min stepsize
     if ~has_found_new_iterate
         if stepSize_trial == self.Option.LineSearch.stepSize_Min
-            % linesearch fails on the min stepsize, break backtracking linesearch procedure
-            status = 0;
+            % linesearch fails on the min stepsize, compute optimized step size and then break backtracking procedure
+            J_ocp_hessian = self.NLP.FuncObj.J_ocp_hessian;
+            quad_term = 1/2*dz'*(J_ocp_hessian + J_penalty_hessian)*dz;
+            stepSize_Opt = -merit_DD/(2 *quad_term);
+            stepSize_trial = min(1, stepSize_Opt);
+            % z_trial, J_trial, h_trial, merit_trial
+            z_trial = z + stepSize_trial * dz;
+            J_trial = full(self.NLP.FuncObj.J(z_trial, p));
+            h_trial = full(self.NLP.FuncObj.h(z_trial, p));
+            if self.Option.LineSearch.scaling_constraint_violation
+                M_trial = self.OCP.timeStep * norm(h_trial, 1);
+            else
+                M_trial = norm(h_trial, 1);
+            end
+            % merit
+            merit_trial = J_trial + beta_k * M_trial;
             break
         else
             % estimate a smaller stepsize
@@ -72,19 +79,11 @@ while ~has_found_new_iterate
 end
 
 %% organize output
-Info.status = status;
-switch status
-    case 0
-        % fail, return the previous one
-        z_k = z;        
-    case 1
-        % success, return the new iterate
-        z_k = z_trial;
-        Info.J = J_trial;
-        Info.h = h_trial;
-        Info.beta = beta_k;
-        Info.stepSize = stepSize_trial;
-        Info.merit = [merit, merit_trial];
-end
+z_k = z_trial;
+Info.J = J_trial;
+Info.h = h_trial;
+Info.beta = beta_k;
+Info.stepSize = stepSize_trial;
+Info.merit = [merit, merit_trial];
 
 end

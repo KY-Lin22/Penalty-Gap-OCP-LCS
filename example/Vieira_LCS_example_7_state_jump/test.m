@@ -9,8 +9,8 @@ Option.reformulation_strategy = 'penalty'; % 'relaxation', 'penalty'
 Option.relaxation_problem = 'Lin_Fukushima'; % 'Scholtes', 'Lin_Fukushima'
 Option.penalty_problem = 'gap_based'; % 'gap_based', 'complementarity_based'
 Option.CHKS_param = 0;
-Option.D_gap_param_a = 0.1;
-Option.D_gap_param_b = 10;
+Option.D_gap_param_a = 0.9;
+Option.D_gap_param_b = 1.1;
 NLP = NLP_Formulation(OCP, Option);
 % construct solver
 switch NLP.reformulation_strategy

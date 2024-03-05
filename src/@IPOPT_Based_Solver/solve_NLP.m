@@ -23,24 +23,21 @@ import casadi.*
 %% check option and input
 % check option (TODO)
 
-NLP = self.NLP;
-Option = self.Option;
-
 % check input z_Init
-if ~all(size(z_Init) == [NLP.Dim.z, 1])
+if ~all(size(z_Init) == [self.NLP.Dim.z, 1])
     error('z_Init has wrong dimension')
 end
 
 % check penalty parameter
 if (p_Init(1) < 0) || (p_End(1) < 0)
-    error('penalty parameter mu (i.e., p_1) should be nonnegative')
+    error('parameter mu (i.e., p_1) should be nonnegative')
 end
 if p_Init(1) > p_End(1)
     error('mu_Init should not larger than mu_End')
 end
 % load parameter
-kappa_mu_times = Option.Homotopy.kappa_mu_times;
-VI_nat_res_tol = Option.Homotopy.VI_nat_res_tol;
+kappa_mu_times = self.Option.Homotopy.kappa_mu_times;
+VI_nat_res_tol = self.Option.Homotopy.VI_nat_res_tol;
 
 %% create record for time and log 
 % evaluate the max number of continuation step based on given mu_Init, mu_End 
@@ -76,13 +73,13 @@ while true
     %% step 1: solve a NLP with given p
     % solve problem
     solution_j = self.Solver('x0', z_Init_j, 'p', p_j,...
-        'lbg', [zeros(NLP.Dim.h, 1); zeros(NLP.Dim.c, 1)],...
-        'ubg', [zeros(NLP.Dim.h, 1); inf*ones(NLP.Dim.c, 1)]);
+        'lbg', [zeros(self.NLP.Dim.h, 1); zeros(self.NLP.Dim.c, 1)],...
+        'ubg', [zeros(self.NLP.Dim.h, 1); inf*ones(self.NLP.Dim.c, 1)]);
     % extract solution and information
     z_Opt_j = full(solution_j.x);
     dual_var_Opt_j = full(solution_j.lam_g);
-    J_ocp_j = full(NLP.FuncObj.J_ocp(z_Opt_j, p_j));
-    J_penalty_j = full(NLP.FuncObj.J_penalty(z_Opt_j, p_j));
+    J_ocp_j = full(self.NLP.FuncObj.J_ocp(z_Opt_j, p_j));
+    J_penalty_j = full(self.NLP.FuncObj.J_penalty(z_Opt_j, p_j));
     KKT_error_primal_j = self.Solver.stats.iterations.inf_pr(end);
     KKT_error_dual_j = self.Solver.stats.iterations.inf_du(end); 
     VI_nat_res_j = self.evaluate_natural_residual(z_Opt_j);

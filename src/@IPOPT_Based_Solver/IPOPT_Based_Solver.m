@@ -1,4 +1,4 @@
-classdef Penalty_IPOPT_Based_Solver < handle
+classdef IPOPT_Based_Solver < handle
     %Implementation of IPOPT with continuation method which solves the following NLP problem:
     %  min  J(z, p),
     %  s.t. h(z, p) = 0,
@@ -16,7 +16,7 @@ classdef Penalty_IPOPT_Based_Solver < handle
     
     %% Constructor method       
     methods
-        function self = Penalty_IPOPT_Based_Solver(OCP, NLP)
+        function self = IPOPT_Based_Solver(OCP, NLP)
             %IPOPT_Based_Solver Construct an instance of this class
             %   Detailed explanation goes here
             import casadi.*

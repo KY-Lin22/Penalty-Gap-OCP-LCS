@@ -6,17 +6,7 @@ Z_Opt = reshape(z_Opt, NLP.Dim.z_Node(end), OCP.nStages);
 
 X_Opt = Z_Opt(1 : NLP.Dim.z_Node(1), :);
 U_Opt = Z_Opt(NLP.Dim.z_Node(1) + 1 : NLP.Dim.z_Node(2), :);
-
-if strcmp(NLP.penalty_problem, 'gap_polar_based')
-    THETA_Opt = Z_Opt(NLP.Dim.z_Node(2) + 1 : NLP.Dim.z_Node(3), :);
-    R_Opt = Z_Opt(NLP.Dim.z_Node(3) + 1 : NLP.Dim.z_Node(4), :);
-    % polar function
-    polar_func_map = NLP.polar_func.map(OCP.nStages);
-    [LAMBDA_Opt, ~] = polar_func_map(THETA_Opt, R_Opt);
-    LAMBDA_Opt = full(LAMBDA_Opt);
-else
-    LAMBDA_Opt = Z_Opt(NLP.Dim.z_Node(2) + 1 : NLP.Dim.z_Node(3), :);
-end
+LAMBDA_Opt = Z_Opt(NLP.Dim.z_Node(2) + 1 : NLP.Dim.z_Node(3), :);
 
 timeAxis = 0 : OCP.timeStep : OCP.nStages * OCP.timeStep;
 

@@ -56,9 +56,11 @@ mu = SX.sym('mu', 1, 1);
 % stage cost
 L_S_map = OCP.FuncObj.L_S.map(OCP.nStages);
 % D gap function
-D_gap_func_map = self.D_gap_func.map(OCP.Dim.lambda*OCP.nStages);
+D_gap_func_base = self.create_D_gap_func();
+D_gap_func_map = D_gap_func_base.map(OCP.Dim.lambda*OCP.nStages);
 % regular function
-regular_func_map = self.regular_func.map(OCP.Dim.lambda*OCP.nStages);
+regular_func_base = self.create_regular_func();
+regular_func_map = regular_func_base.map(OCP.Dim.lambda*OCP.nStages);
 % ODE r.h.s function
 f_map = OCP.FuncObj.f.map(OCP.nStages);
 % complementarity function
@@ -94,8 +96,8 @@ J_penalty = mu * sum(D_gap_func);
 J = J_ocp + J_penalty;
 % regular
 w = SX.sym('w', 1, OCP.Dim.lambda * OCP.nStages);  % flag vector (symbolic var)
-b_lambda_eta = ( self.D_gap_param_b*reshape(LAMBDA, 1, OCP.Dim.lambda * OCP.nStages) > reshape(ETA, 1, eta_Dim * OCP.nStages) );
-a_lambda_eta = ( self.D_gap_param_a*reshape(LAMBDA, 1, OCP.Dim.lambda * OCP.nStages) < reshape(ETA, 1, eta_Dim * OCP.nStages) );
+b_lambda_eta = ( self.D_gap_param_b*reshape(LAMBDA, 1, OCP.Dim.lambda * OCP.nStages) >= reshape(ETA, 1, eta_Dim * OCP.nStages) );
+a_lambda_eta = ( self.D_gap_param_a*reshape(LAMBDA, 1, OCP.Dim.lambda * OCP.nStages) <= reshape(ETA, 1, eta_Dim * OCP.nStages) );
 w_formula = (b_lambda_eta) .* (a_lambda_eta);  % flag vector (formula)
 regular_func_w = mu * sum(w .* regular_func);
 % equality constraint h = 0
@@ -105,7 +107,7 @@ h_stage = ...
 h = reshape(h_stage, (OCP.Dim.x + OCP.Dim.lambda) * OCP.nStages, 1);
 Dim.h_Node = cumsum([OCP.Dim.x, OCP.Dim.lambda]);
 Dim.h = size(h, 1);
-% inequality constraint c>=0
+% inequality constraint c >= 0
 c = SX.sym('c', 0, 1);
 Dim.c = size(c, 1);
 

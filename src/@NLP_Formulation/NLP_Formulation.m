@@ -1,4 +1,4 @@
-classdef NLP_Penalty_Formulation < handle
+classdef NLP_Formulation < handle
     % formulate a NLP based on the given OCP_LCS and formulation option
     %
     % OCP_LCS has the form:
@@ -13,20 +13,22 @@ classdef NLP_Penalty_Formulation < handle
     %       c(z, p) >= 0
 
     properties
+        reformulation_strategy char {mustBeMember(reformulation_strategy, {...
+            'relaxation',...
+            'penalty',...
+            })} = 'penalty';
+        relaxation_problem char {mustBeMember(relaxation_problem, {...
+            'Scholtes',...
+            'Lin_Fukushima'...
+            })} = 'Scholtes' 
         penalty_problem char {mustBeMember(penalty_problem, {...
             'gap_based',...
-            'gap_polar_based', ...
             'complementarity_based'...
             })} = 'gap_based' 
         CHKS_param double {mustBeNonnegative} = 1e-5 % used in CHKS smoothing function for max(0, x)
         D_gap_param_a double {mustBeNonnegative} = 0.9; % D gap function parameters: b > a > 0 (a ref value: a = 0.9, b = 1.1)
         D_gap_param_b double {mustBeNonnegative} = 1.1; % Ref: Theoretical and numerical investigation of the D-gap function   
                                                         % for BVI, 1998, Mathematical Programming, C.Kanzow & M. Fukushima
-    end
-    properties
-        D_gap_func % function object, scalar D gap function (1 x 1 -> 1)
-        regular_func % function object, scalar regular function (1 x 1 -> 1)
-        polar_func % function object, scalar transfer function (1 x 1 -> 1 x 1）
     end
     properties
         z % symbolic variable, includes all the variable to be optimized,
@@ -41,10 +43,16 @@ classdef NLP_Penalty_Formulation < handle
 
     %% Constructor method
     methods
-        function self = NLP_Penalty_Formulation(OCP, Option)
+        function self = NLP_Formulation(OCP, Option)
             %UNTITLED3 Construct an instance of this class
             %   Detailed explanation goes here
             %% specify properties based on Option
+            if isfield(Option, 'reformulation_strategy')
+                self.reformulation_strategy = Option.reformulation_strategy;
+            end
+            if isfield(Option, 'relaxation_problem')
+                self.relaxation_problem = Option.relaxation_problem;
+            end
             if isfield(Option, 'penalty_problem')
                 self.penalty_problem = Option.penalty_problem;
             end
@@ -62,22 +70,18 @@ classdef NLP_Penalty_Formulation < handle
             end
             
             %% discretize OCP into NLP
-            switch self.penalty_problem
-                case 'gap_based'
-                    D_gap_func = self.create_D_gap_func();
-                    regular_func = self.create_regular_func();
-                    self.D_gap_func = D_gap_func;
-                    self.regular_func = regular_func;
-                    nlp = self.create_penalty_gap_NLP(OCP);
-                case 'gap_polar_based'
-                    D_gap_func = self.create_D_gap_func();
-                    polar_func = self.create_polar_func(OCP);
-                    self.D_gap_func = D_gap_func;
-                    self.polar_func = polar_func;
-                    nlp = self.create_penalty_gap_polar_NLP(OCP);
-                case 'complementarity_based'
-                    nlp = self.create_penalty_complementarity_NLP(OCP);
+            switch self.reformulation_strategy
+                case 'relaxation'
+                    nlp = self.create_relaxation_NLP(OCP);
+                case 'penalty'
+                    switch self.penalty_problem
+                        case 'gap_based'
+                            nlp = self.create_penalty_gap_NLP(OCP);
+                        case 'complementarity_based'
+                            nlp = self.create_penalty_complementarity_NLP(OCP);
+                    end
             end
+
             % variable and function
             self.z = nlp.z;   
             self.p = nlp.p;
@@ -106,15 +110,13 @@ classdef NLP_Penalty_Formulation < handle
 
     %% Other methods
     methods
+        nlp = create_relaxation_NLP(self, OCP)
+
         D_gap_func = create_D_gap_func(self)
 
         regular_func = create_regular_func(self)
 
-        polar_func = create_polar_func(self, OCP)
-
         nlp = create_penalty_gap_NLP(self, OCP)
-
-        nlp = create_penalty_gap_polar_NLP(self, OCP)
 
         nlp = create_penalty_complementarity_NLP(self, OCP)
 

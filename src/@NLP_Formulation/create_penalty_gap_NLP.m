@@ -14,11 +14,10 @@ function nlp = create_penalty_gap_NLP(self, OCP)
 %  s.t. h(z, p) = 0,
 %       c(z, p) >= 0
 % where: (1) z: collects all the variables to be optimized and arranged in a stagewise manner
-%            z = [z_1;...z_n;...z_N] and z_n = [x_n; u_n; lambda_n; eta_n] 
-%            with x_n:      system state
-%                 u_n:      control                 
-%                 lambda_n: algebraic variable   
-%                 eta_n:  auxiliary variable for complementarity function
+%            z = [z_1;...z_n;...z_N] and z_n = [x_n; u_n; xi_n] 
+%            with x_n:  system state
+%                 u_n:  control                 
+%                 xi_n: element-wise concatenation of algebraic variable lambda_n and auxiliary variable eta_n
 %        (2) p: collects all the NLP problem parameters p = [mu]
 %            with mu: nonnegative penalty parameter for penalty function
 %        (3) J: cost function J = J_ocp + J_penalty
@@ -82,8 +81,12 @@ f_stage = f_map(X, U, LAMBDA);
 g_stage = g_map(X, U, LAMBDA);
 
 %% reshape NLP variable and function (column, lowercase)
+% xi: element-wise concatenation of lambda and eta
+[group_func, ~, ~] = self.create_element_wise_concatenation_func(OCP);
+group_func_map = group_func.map(OCP.nStages);
+XI = group_func_map(LAMBDA, ETA);
 % variable
-Z = [X; U; LAMBDA; ETA];
+Z = [X; U; XI];
 z = reshape(Z, (OCP.Dim.x + OCP.Dim.u + OCP.Dim.lambda + eta_Dim) * OCP.nStages, 1);
 Dim.z_Node = cumsum([OCP.Dim.x, OCP.Dim.u, OCP.Dim.lambda, eta_Dim]); 
 Dim.z = size(z, 1);

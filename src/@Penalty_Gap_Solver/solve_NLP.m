@@ -132,7 +132,23 @@ while true
 
     %% step 4: check exitFlag and return optimal solution
     if exitFlag
-        % return the current homotopy iterate as the optimal solution
+        % reshape and return the current homotopy iterate as the optimal solution
+        Z_Opt_j = reshape(z_Opt_j, self.NLP.Dim.z_Node(end), self.OCP.nStages);
+
+        X_Opt_j  = Z_Opt_j(1 : self.NLP.Dim.z_Node(1), :);
+        U_Opt_j  = Z_Opt_j(self.NLP.Dim.z_Node(1) + 1 : self.NLP.Dim.z_Node(2), :);
+        XI_Opt_j = Z_Opt_j(self.NLP.Dim.z_Node(2) + 1 : self.NLP.Dim.z_Node(4), :);
+
+        [~, decouple_func_lambda, decouple_func_eta] = ...
+            self.NLP.create_element_wise_concatenation_func(self.OCP);
+
+        decouple_func_lambda_map = decouple_func_lambda.map(self.OCP.nStages);
+        decouple_func_eta_map = decouple_func_eta.map(self.OCP.nStages);
+        LAMBDA_Opt_j = full(decouple_func_lambda_map(XI_Opt_j));
+        ETA_Opt_j = full(decouple_func_eta_map(XI_Opt_j));
+        z_Opt_j = reshape([X_Opt_j; U_Opt_j; LAMBDA_Opt_j; ETA_Opt_j],...
+            (self.OCP.Dim.x + self.OCP.Dim.u + 2*self.OCP.Dim.lambda) * self.OCP.nStages, 1);
+
         z_Opt = z_Opt_j;
         % create Info
         Info.continuationStepNum = j;

@@ -7,8 +7,13 @@ Z_Init = reshape(z_Init, self.NLP.Dim.z_Node(end), self.OCP.nStages);
 
 X_Init      = Z_Init(1 : self.NLP.Dim.z_Node(1), :);
 U_Init      = Z_Init(self.NLP.Dim.z_Node(1) + 1 : self.NLP.Dim.z_Node(2), :);
-LAMBDA_Init = Z_Init(self.NLP.Dim.z_Node(2) + 1 : self.NLP.Dim.z_Node(3), :);
-% ETA_Init    = Z_Init(self.NLP.Dim.z_Node(3) + 1 : self.NLP.Dim.z_Node(4), :);
+XI_Init     = Z_Init(self.NLP.Dim.z_Node(2) + 1 : self.NLP.Dim.z_Node(4), :);
+
+% decouple Xi
+[group_func, decouple_func_lambda, ~] = self.NLP.create_element_wise_concatenation_func(self.OCP);
+
+decouple_func_lambda_map = decouple_func_lambda.map(self.OCP.nStages);
+LAMBDA_Init = full(decouple_func_lambda_map(XI_Init));
 
 switch self.Option.polish_initial_guess_method
     case 'eta_g'
@@ -19,7 +24,8 @@ switch self.Option.polish_initial_guess_method
         LAMBDA_Init = abs(LAMBDA_Init);
         ETA_Init = zeros(self.OCP.Dim.lambda, self.OCP.nStages);
 end
-
-z_Init = reshape([X_Init; U_Init; LAMBDA_Init; ETA_Init],...
+group_func_map = group_func.map(self.OCP.nStages);
+XI_Init = full(group_func_map(LAMBDA_Init, ETA_Init));
+z_Init = reshape([X_Init; U_Init; XI_Init],...
     (self.OCP.Dim.x + self.OCP.Dim.u + self.OCP.Dim.lambda + self.OCP.Dim.lambda) * self.OCP.nStages, 1);
 end

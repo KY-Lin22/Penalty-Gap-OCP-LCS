@@ -116,6 +116,9 @@ classdef NLP_Formulation < handle
 
         regular_func = create_regular_func(self)
 
+        [group_func, decouple_func_lambda, decouple_func_eta] ...
+            = create_element_wise_concatenation_func(self, OCP)
+
         nlp = create_penalty_gap_NLP(self, OCP)
 
         nlp = create_penalty_complementarity_NLP(self, OCP)

@@ -16,6 +16,7 @@ classdef NLP_Formulation < handle
         reformulation_strategy char {mustBeMember(reformulation_strategy, {...
             'relaxation',...
             'penalty',...
+            'smoothing'
             })} = 'penalty';
         relaxation_problem char {mustBeMember(relaxation_problem, {...
             'Scholtes',...
@@ -25,6 +26,9 @@ classdef NLP_Formulation < handle
             'gap_based',...
             'complementarity_based'...
             })} = 'gap_based' 
+        smoothing_problem char {mustBeMember(smoothing_problem, {...
+            'FB',...
+            })} = 'FB'
         CHKS_param double {mustBeNonnegative} = 1e-5 % used in CHKS smoothing function for max(0, x)
         D_gap_param_a double {mustBeNonnegative} = 0.9; % D gap function parameters: b > a > 0 (a ref value: a = 0.9, b = 1.1)
         D_gap_param_b double {mustBeNonnegative} = 1.1; % Ref: Theoretical and numerical investigation of the D-gap function   
@@ -56,6 +60,9 @@ classdef NLP_Formulation < handle
             if isfield(Option, 'penalty_problem')
                 self.penalty_problem = Option.penalty_problem;
             end
+            if isfield(Option, 'smoothing_problem')
+                self.smoothing_problem = Option.smoothing_problem;
+            end
             if isfield(Option, 'CHKS_param')
                 self.CHKS_param = Option.CHKS_param;
             end
@@ -80,6 +87,8 @@ classdef NLP_Formulation < handle
                         case 'complementarity_based'
                             nlp = self.create_penalty_complementarity_NLP(OCP);
                     end
+                case 'smoothing'
+                    nlp = self.create_smoothing_NLP(OCP);
             end
 
             % variable and function
@@ -122,6 +131,8 @@ classdef NLP_Formulation < handle
         nlp = create_penalty_gap_NLP(self, OCP)
 
         nlp = create_penalty_complementarity_NLP(self, OCP)
+
+        nlp = create_smoothing_NLP(self, OCP)
 
         FuncObj = create_FuncObj(self, nlp)
 

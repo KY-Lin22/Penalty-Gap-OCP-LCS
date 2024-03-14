@@ -5,7 +5,7 @@ clc
 % construct OCP problem
 OCP = OCP_Vieira_LCS_lambda_penalty();
 % construct NLP problemLin_Fukushima
-Option.reformulation_strategy = 'penalty'; % 'relaxation', 'penalty'
+Option.reformulation_strategy = 'smoothing'; % 'relaxation', 'penalty', 'smoothing'
 Option.relaxation_problem = 'Lin_Fukushima'; % 'Scholtes', 'Lin_Fukushima'
 Option.penalty_problem = 'gap_based'; % 'gap_based', 'complementarity_based'
 Option.CHKS_param = 0;
@@ -23,6 +23,8 @@ switch NLP.reformulation_strategy
             case 'complementarity_based'
                 solver = IPOPT_Based_Solver(OCP, NLP);
         end
+    case 'smoothing'
+        solver = IPOPT_Based_Solver(OCP, NLP);
 end
 
 %% set option and solve problem

@@ -40,6 +40,8 @@ for i = 1 : size(NLP_problem_set, 1)
                     case 'complementarity_based'
                         solver_i_j = IPOPT_Based_Solver(OCP_i, NLP_i_j);
                 end
+            case 'smoothing'
+                solver_i_j = IPOPT_Based_Solver(OCP_i, NLP_i_j);
         end
         % homotopy option
         solver_i_j.Option.Homotopy.kappa_mu_times = solver_Option.kappa_mu_times;

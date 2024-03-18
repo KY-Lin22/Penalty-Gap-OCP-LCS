@@ -1,2 +1,2 @@
-# Gap-Penalty-OCP-LCS
+# Penalty-Gap-OCP-LCS
  

@@ -2,9 +2,9 @@
 clear all
 clc
 
-a = 0.5;
-b = 2;
-counter_level = [1, 5, 10];
+a = 0.1;
+b = 10;
+counter_level = [1, 10, 25];
 plot_D_gap_function_convex_region(a, b, counter_level);
 
 %%
@@ -36,10 +36,10 @@ nodePoint1_y = b*nodePoint1_x;
 nodePoint3_y = a*nodePoint3_x;
 
 % figure boundary
-x_lb = nodePoint3_x(end) - 1;
-x_ub = nodePoint2_x(end) + 1;
-y_lb = nodePoint4_y(end) - 1;
-y_ub = nodePoint1_y(end) + 1;
+x_lb = -4 - 0.5;
+x_ub = 6 + 0.5;
+y_lb = -4 - 0.5;
+y_ub = 6 + 0.5;
 
 % axis
 bound_y_ax_x = x_lb: stepsize : x_ub;
@@ -89,8 +89,7 @@ hold on
 patch(concave_reg_x, concave_reg_y, 'blue', 'FaceAlpha', 0.1, 'LineStyle', 'none')
 hold on
 
-
-axis([nodePoint3_x(end)-0.6, nodePoint2_x(end)+0.5, nodePoint4_y(end)-0.4, nodePoint1_y(end)+0.5])
+axis([x_lb, x_ub, y_lb, y_ub])
 xline(0, 'LineWidth', 1); 
 yline(0, 'LineWidth', 1);
 

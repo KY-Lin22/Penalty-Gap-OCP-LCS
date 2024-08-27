@@ -2,12 +2,22 @@
 clear all
 clc
 
-a = 0.5;
-b = 2;
-plotDGapFunContour(a, b)
+a = 0.9;
+b = 1.1;
+counter_level = [0.1, 1];
+
+% a = 0.5;
+% b = 2;
+% counter_level = [1, 5, 10];
+
+% a = 0.1;
+% b = 10;
+% counter_level = [1, 10, 25];
+
+plotDGapFunContour(a, b, counter_level)
 
 %%
-function plotDGapFunContour(a, b)
+function plotDGapFunContour(a, b, counter_level)
 % parameter
 stepsize = 0.01;
 % data
@@ -22,12 +32,13 @@ end
 % mesh and colour
 [X, Y] = meshgrid(x, y);
 C = 1.*Z_surf;
-figure(3)
+figure(1)
 sfc_handle = surfc(X, Y, Z_surf, C, 'FaceAlpha',0.5, 'EdgeColor', 'none');
+
 contourProperty = sfc_handle(2);
-contourProperty.ContourZLevel = -max(max(Z_surf));
-contourProperty.LineWidth = 1;
-contourProperty.LevelList = [1, 5, 10];
+contourProperty.ContourZLevel = -20;
+contourProperty.LineWidth = 1.5;
+contourProperty.LevelList = counter_level;
 contourProperty.ShowText = 'on';
 hold on
 
@@ -39,9 +50,10 @@ lighting gouraud;% best lighting algoithm for curved surfaces
 material shiny
 box on
 % sets the axis limits equal to the range of the data
-axis([x(1)-0.5, x(end)+0.5, y(1)-0.5, y(end)+0.5, contourProperty.ContourZLevel, max(max(Z_surf)) + 5] )
+axis([x(1)-0.5, x(end)+0.5, y(1)-0.5, y(end)+0.5, contourProperty.ContourZLevel, 25] )
+set(gca, 'FontSize', 20)
 % title('generalized D Gap Function')
-xlabel('$\lambda_i$', 'Interpreter','latex')
-ylabel('$\eta_i$', 'Interpreter','latex')
-zlabel('$\delta^{ab}$', 'Interpreter','latex')
+xlabel('$\lambda_i$', 'Interpreter','latex', 'FontSize', 20)
+ylabel('$\eta_i$', 'Interpreter','latex', 'FontSize', 20)
+zlabel('$\delta^{ab}$', 'Interpreter','latex', 'FontSize', 20)
 end

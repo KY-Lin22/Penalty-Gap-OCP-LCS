@@ -1,6 +1,13 @@
 %% counter of D gap function
 clear all
 clc
+% a = 0.9;
+% b = 1.1;
+% counter_level = [0.1, 1];
+
+% a = 0.5;
+% b = 2;
+% counter_level = [1, 5, 10];
 
 a = 0.1;
 b = 10;
@@ -58,7 +65,7 @@ concave_reg_x = [origin_x, bound_y_bx_x(end), x_ub, bound_y_ax_x(end)];
 concave_reg_y = [origin_y, bound_y_bx_y(end), y_ub, bound_y_ax_y(end)];
 
 % plot counter and boundary
-figure(2)
+figure(1)
 for i = 1 : num_level
     s = counter_level(i);
     plot([nodePoint3_x(i), nodePoint3_x(i)], [y_ub, nodePoint3_y(i)], 'k', 'LineStyle', '--', 'LineWidth', 1)
@@ -80,7 +87,6 @@ plot(bound_y_ax_x, bound_y_ax_y, 'k', 'LineWidth', 2)
 hold on
 plot(bound_y_bx_x, bound_y_bx_y, 'k', 'LineWidth', 2)
 hold on
-
 % plot concave region
 patch(convex_reg_up_x, convex_reg_up_y, 'green', 'FaceAlpha', 0.1, 'LineStyle', 'none')
 hold on
@@ -88,9 +94,14 @@ patch(convex_reg_down_x, convex_reg_down_y, 'green', 'FaceAlpha', 0.1, 'LineStyl
 hold on
 patch(concave_reg_x, concave_reg_y, 'blue', 'FaceAlpha', 0.1, 'LineStyle', 'none')
 hold on
-
+text(2, 1, '$\eta_i = a \lambda_i$', 'Interpreter','latex', 'FontSize', 20)
+annotation('arrow', [0.1, 0.3], [0.2, 0.4], 'HeadWidth', 10, 'HeadLength', 10, 'LineWidth', 1.2)
+text(1, 2, '$\eta_i = b \lambda_i$', 'Interpreter','latex', 'FontSize', 20)
+annotation('arrow', [0.4, 0.6], [0.7, 0.8], 'HeadWidth', 10, 'HeadLength', 10, 'LineWidth', 1.2)
 axis([x_lb, x_ub, y_lb, y_ub])
+set(gca, 'FontSize', 20)
 xline(0, 'LineWidth', 1); 
 yline(0, 'LineWidth', 1);
-
+xlabel('$\lambda_i$', 'Interpreter','latex', 'FontSize', 20)
+ylabel('$\eta_i$', 'Interpreter','latex', 'FontSize', 20)
 end

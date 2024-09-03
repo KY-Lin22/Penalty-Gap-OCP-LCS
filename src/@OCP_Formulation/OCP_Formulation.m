@@ -47,6 +47,7 @@ classdef OCP_Formulation < handle
                 C, D, F)
             %UNTITLED2 Construct an instance of this class
             %   Detailed explanation goes here
+            disp('creating OCP of LCS...')
             %% formulate OCP_LCS
             % time parameter
             self.TimeHorizon = TimeHorizon;
@@ -88,6 +89,8 @@ classdef OCP_Formulation < handle
             disp(['number of state variable (x): ............... ', num2str(self.Dim.x)])
             disp(['number of control variable (u): ............. ', num2str(self.Dim.u)])
             disp(['number of algebraic variable (lambda): ...... ', num2str(self.Dim.lambda)])         
+
+            disp('Done!')
         end
 
     end

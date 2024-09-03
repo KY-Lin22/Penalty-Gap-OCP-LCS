@@ -100,25 +100,23 @@ while true
     disp(prevIterMsg)
 
     %% step 3: check ternimation based on the current homotopy iterate
-    solver_stats = Info_j.terminalStatus;
-    if (solver_stats == 1) && (VI_nat_res_j <= self.Option.Homotopy.VI_nat_res_tol)
+    if (Info_j.terminalStatus == 1) && (VI_nat_res_j <= self.Option.Homotopy.VI_nat_res_tol)
         % IPOPT at this homotopy iteration finds the optimal solution satisfying the desired VI natural residual
-        exitFlag = true;
         terminalStatus = 1;
         terminalMsg = Info_j.terminalMsg;
-    elseif (solver_stats ~= 1)
+        break
+    elseif (Info_j.terminalStatus ~= 1)
         % IPOPT at this homotopy iteration fails to find the optimal solution
-        exitFlag = true;
         terminalStatus = 0;
         terminalMsg = Info_j.terminalMsg;
+        break
     elseif j == continuationStepMaxNum
         % IPOPT still can not find the optimal solution in the final homotopy iteration
-        exitFlag = true;
         terminalStatus = 0;
         terminalMsg = 'solver can not find the optimal solution satisfying the desired VI natural residual';
+        break
     else
         % IPOPT at this homotopy iteration (not the final) finds the optimal solution, prepare for next homotopy
-        exitFlag = false;
         % update initial guess
         z_Init_j = z_Opt_j;
         % update penalty parameter
@@ -130,58 +128,52 @@ while true
         j = j + 1;
     end
 
-    %% step 4: check exitFlag and return optimal solution
-    if exitFlag
-        % reshape and return the current homotopy iterate as the optimal solution
-        Z_Opt_j = reshape(z_Opt_j, self.NLP.Dim.z_Node(end), self.OCP.nStages);
-
-        X_Opt_j  = Z_Opt_j(1 : self.NLP.Dim.z_Node(1), :);
-        U_Opt_j  = Z_Opt_j(self.NLP.Dim.z_Node(1) + 1 : self.NLP.Dim.z_Node(2), :);
-        XI_Opt_j = Z_Opt_j(self.NLP.Dim.z_Node(2) + 1 : self.NLP.Dim.z_Node(4), :);
-
-        [~, decouple_func_lambda, decouple_func_eta] = ...
-            self.NLP.create_element_wise_concatenation_func(self.OCP);
-
-        decouple_func_lambda_map = decouple_func_lambda.map(self.OCP.nStages);
-        decouple_func_eta_map = decouple_func_eta.map(self.OCP.nStages);
-        LAMBDA_Opt_j = full(decouple_func_lambda_map(XI_Opt_j));
-        ETA_Opt_j = full(decouple_func_eta_map(XI_Opt_j));
-        z_Opt_j = reshape([X_Opt_j; U_Opt_j; LAMBDA_Opt_j; ETA_Opt_j],...
-            (self.OCP.Dim.x + self.OCP.Dim.u + 2*self.OCP.Dim.lambda) * self.OCP.nStages, 1);
-
-        z_Opt = z_Opt_j;
-        % create Info
-        Info.continuationStepNum = j;
-        Info.terminalStatus = terminalStatus; 
-        Info.terminalMsg = terminalMsg; 
-        Info.dual_var = dual_var_Opt_j;
-        Info.cost.ocp = J_ocp_j;
-        Info.cost.penalty = J_penalty_j;
-        Info.KKT_error.primal = KKT_error_primal_j;
-        Info.KKT_error.dual = KKT_error_dual_j;
-        Info.VI_natural_residual = VI_nat_res_j;
-        Info.Time = Time;
-        Info.time = Time.total;
-        Info.iterNum = iterNum;
-        % display homotopy terminal result and then break        
-        disp('*----------------------------------- Solution Information ------------------------------------*')
-        disp(['1. Terminal Message: ', Info.terminalMsg]) 
-        disp('2. Continuation Step Message')
-        disp(['- TimeElapsed: ................... ', num2str(Info.time,'%10.3f'), ' s'])
-        disp(['- Continuation Step: ............. ', num2str(Info.continuationStepNum)])        
-        disp(['- Time Per Continuation Step: .... ', num2str(Info.time / Info.continuationStepNum,'%10.3f'), ' s/Step'])
-        disp(['- Iterations: .................... ', num2str(Info.iterNum)])
-        disp(['- Time Per Iteration: ............ ', num2str(1000 * Info.time / Info.iterNum,'%10.3f'), ' ms/Iter'])
-        disp('3. Solution Message')
-        disp(['- Cost(ocp): ..................... ', num2str(Info.cost.ocp,'%10.3e'), '; '])
-        disp(['- Cost(penalty): ................. ', num2str(Info.cost.penalty,'%10.3e'), '; '])
-        disp(['- KKT(primal): ................... ', num2str(Info.KKT_error.primal,'%10.3e'), '; '])
-        disp(['- KKT(dual): ..................... ', num2str(Info.KKT_error.dual,'%10.3e')  '; '])
-        disp(['- natural residual: .............. ', num2str(Info.VI_natural_residual,'%10.3e'), '; '])
-
-        break
-    end
-
 end
 
+%% reshape and return the current homotopy iterate as the optimal solution
+Z_Opt_j = reshape(z_Opt_j, self.NLP.Dim.z_Node(end), self.OCP.nStages);
+
+X_Opt_j  = Z_Opt_j(1 : self.NLP.Dim.z_Node(1), :);
+U_Opt_j  = Z_Opt_j(self.NLP.Dim.z_Node(1) + 1 : self.NLP.Dim.z_Node(2), :);
+XI_Opt_j = Z_Opt_j(self.NLP.Dim.z_Node(2) + 1 : self.NLP.Dim.z_Node(4), :);
+
+[~, decouple_func_lambda, decouple_func_eta] = ...
+    self.NLP.create_element_wise_concatenation_func(self.OCP);
+
+decouple_func_lambda_map = decouple_func_lambda.map(self.OCP.nStages);
+decouple_func_eta_map = decouple_func_eta.map(self.OCP.nStages);
+LAMBDA_Opt_j = full(decouple_func_lambda_map(XI_Opt_j));
+ETA_Opt_j = full(decouple_func_eta_map(XI_Opt_j));
+z_Opt_j = reshape([X_Opt_j; U_Opt_j; LAMBDA_Opt_j; ETA_Opt_j],...
+    (self.OCP.Dim.x + self.OCP.Dim.u + 2*self.OCP.Dim.lambda) * self.OCP.nStages, 1);
+
+z_Opt = z_Opt_j;
+% create Info
+Info.continuationStepNum = j;
+Info.terminalStatus = terminalStatus;
+Info.terminalMsg = terminalMsg;
+Info.dual_var = dual_var_Opt_j;
+Info.cost.ocp = J_ocp_j;
+Info.cost.penalty = J_penalty_j;
+Info.KKT_error.primal = KKT_error_primal_j;
+Info.KKT_error.dual = KKT_error_dual_j;
+Info.VI_natural_residual = VI_nat_res_j;
+Info.Time = Time;
+Info.time = Time.total;
+Info.iterNum = iterNum;
+% display homotopy terminal result and then break
+disp('*----------------------------------- Solution Information ------------------------------------*')
+disp(['1. Terminal Message: ', Info.terminalMsg])
+disp('2. Continuation Step Message')
+disp(['- TimeElapsed: ................... ', num2str(Info.time,'%10.3f'), ' s'])
+disp(['- Continuation Step: ............. ', num2str(Info.continuationStepNum)])
+disp(['- Time Per Continuation Step: .... ', num2str(Info.time / Info.continuationStepNum,'%10.3f'), ' s/Step'])
+disp(['- Iterations: .................... ', num2str(Info.iterNum)])
+disp(['- Time Per Iteration: ............ ', num2str(1000 * Info.time / Info.iterNum,'%10.3f'), ' ms/Iter'])
+disp('3. Solution Message')
+disp(['- Cost(ocp): ..................... ', num2str(Info.cost.ocp,'%10.3e'), '; '])
+disp(['- Cost(penalty): ................. ', num2str(Info.cost.penalty,'%10.3e'), '; '])
+disp(['- KKT(primal): ................... ', num2str(Info.KKT_error.primal,'%10.3e'), '; '])
+disp(['- KKT(dual): ..................... ', num2str(Info.KKT_error.dual,'%10.3e')  '; '])
+disp(['- natural residual: .............. ', num2str(Info.VI_natural_residual,'%10.3e'), '; '])
 end

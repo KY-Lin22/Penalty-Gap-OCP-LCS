@@ -29,7 +29,6 @@ classdef NLP_Formulation < handle
         smoothing_problem char {mustBeMember(smoothing_problem, {...
             'FB',...
             })} = 'FB'
-        CHKS_param double {mustBeNonnegative} = 1e-5 % used in CHKS smoothing function for max(0, x)
         D_gap_param_a double {mustBeNonnegative} = 0.9; % D gap function parameters: b > a > 0 (a ref value: a = 0.9, b = 1.1)
         D_gap_param_b double {mustBeNonnegative} = 1.1; % Ref: Theoretical and numerical investigation of the D-gap function   
                                                         % for BVI, 1998, Mathematical Programming, C.Kanzow & M. Fukushima
@@ -62,9 +61,6 @@ classdef NLP_Formulation < handle
             end
             if isfield(Option, 'smoothing_problem')
                 self.smoothing_problem = Option.smoothing_problem;
-            end
-            if isfield(Option, 'CHKS_param')
-                self.CHKS_param = Option.CHKS_param;
             end
             if isfield(Option, 'D_gap_param_a')
                 self.D_gap_param_a = Option.D_gap_param_a;

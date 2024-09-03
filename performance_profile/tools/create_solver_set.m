@@ -8,6 +8,7 @@ for i = 1 : numel(OCP_func_handle)
     for j = 1 : numel(nStages_sequ)
         OCP_i_j = OCP_func_handle{i}();
         OCP_i_j.nStages = nStages_sequ{j};
+        OCP_i_j.timeStep = OCP_i_j.TimeHorizon ./ OCP_i_j.nStages;
         OCP_problem_set{i, j} = OCP_i_j;
     end
 end

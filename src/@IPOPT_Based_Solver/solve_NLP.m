@@ -118,22 +118,21 @@ while true
         || (strcmp(self.Solver.stats.return_status, 'Feasible_Point_Found'));
     if solver_stats && (VI_nat_res_j <= VI_nat_res_tol)
         % IPOPT at this homotopy iteration finds the optimal solution satisfying the desired VI natural residual
-        exitFlag = true;
         terminalStatus = 1;
         terminalMsg = self.Solver.stats.return_status;
+        break
     elseif ~solver_stats
         % IPOPT at this homotopy iteration fails to find the optimal solution
-        exitFlag = true;
         terminalStatus = 0;
         terminalMsg = self.Solver.stats.return_status;
+        break
     elseif j == continuationStepMaxNum
         % IPOPT still can not find the optimal solution in the final homotopy iteration
-        exitFlag = true;
         terminalStatus = 0;
         terminalMsg = 'IPOPT can not find the optimal solution satisfying the desired VI natural residual';
+        break
     else
         % IPOPT at this homotopy iteration (not the final) finds the optimal solution, prepare for next homotopy iteration
-        exitFlag = false;
         % update initial guess
         z_Init_j = z_Opt_j;
         % update penalty parameter
@@ -144,51 +143,43 @@ while true
         % update continuation step counter
         j = j + 1;
     end
-    %% step 4: check exitFlag and return optimal solution
-    if exitFlag
-        % return the current homotopy iterate as the optimal solution
-        z_Opt = z_Opt_j;
-        % create Info
-        Info.continuationStepNum = j;
-        Info.terminalStatus = terminalStatus; 
-        Info.terminalMsg = terminalMsg; 
-        Info.dual_var = dual_var_Opt_j;
-        Info.cost.ocp = J_ocp_j;
-        Info.cost.penalty = J_penalty_j;
-        Info.KKT_error.primal = KKT_error_primal_j;
-        Info.KKT_error.dual = KKT_error_dual_j;
-        Info.VI_natural_residual = VI_nat_res_j;
-        Info.time = sum(Log.timeElapsed);
-        Info.iterNum = sum(Log.iterNum);
-        Info.Log.param = Log.param(1 : j, :);
-        Info.Log.cost = Log.cost(1 : j, :);
-        Info.Log.KKT_error = Log.KKT_error(1 : j, :);
-        Info.Log.stepSize_primal = Log.stepSize_primal(1 : j, :);
-        Info.Log.stepSize_dual = Log.stepSize_dual(1 : j, :);
-        Info.Log.VI_natural_residual = Log.VI_natural_residual(1 : j, :);
-        Info.Log.iterNum = Log.iterNum(1 : j, :);
-        Info.Log.timeElapsed = Log.timeElapsed(1 : j, :);
-        % display homotopy terminal result and then break        
-        disp('*--------------------------------------------- Solution Information ----------------------------------------------*')
-        disp(['1. Terminal Message: ', Info.terminalMsg]) 
-        disp('2. Continuation Step Message')
-        disp(['- TimeElapsed: ................................. ', num2str(Info.time,'%10.3f'), ' s'])
-        disp(['- Continuation Step: ........................... ', num2str(Info.continuationStepNum)])        
-        disp(['- Time Per Continuation Step: .................. ', num2str(Info.time / Info.continuationStepNum,'%10.2f'), ' s/Step'])
-        disp(['- Iterations: .................................. ', num2str(Info.iterNum)])
-        disp(['- Time Per Iteration: .......................... ', num2str(1000 * Info.time / Info.iterNum,'%10.2f'), ' ms/Iter'])
-        disp('3. Solution Message')
-        disp(['- Cost(ocp): ................................... ', num2str(Info.cost.ocp,'%10.3e'), '; '])
-        disp(['- Cost(penalty): ............................... ', num2str(Info.cost.penalty,'%10.3e'), '; '])
-        disp(['- KKT(primal): ................................. ', num2str(Info.KKT_error.primal,'%10.3e'), '; '])
-        disp(['- KKT(dual): ................................... ', num2str(Info.KKT_error.dual,'%10.3e')  '; '])
-        disp(['- equilibrium constraint(natural residual): .... ', num2str(Info.VI_natural_residual,'%10.3e'), '; '])
-
-        break
-    end
-
-
-
 end
 
+%% return the current homotopy iterate as the optimal solution
+z_Opt = z_Opt_j;
+% create Info
+Info.continuationStepNum = j;
+Info.terminalStatus = terminalStatus;
+Info.terminalMsg = terminalMsg;
+Info.dual_var = dual_var_Opt_j;
+Info.cost.ocp = J_ocp_j;
+Info.cost.penalty = J_penalty_j;
+Info.KKT_error.primal = KKT_error_primal_j;
+Info.KKT_error.dual = KKT_error_dual_j;
+Info.VI_natural_residual = VI_nat_res_j;
+Info.time = sum(Log.timeElapsed);
+Info.iterNum = sum(Log.iterNum);
+Info.Log.param = Log.param(1 : j, :);
+Info.Log.cost = Log.cost(1 : j, :);
+Info.Log.KKT_error = Log.KKT_error(1 : j, :);
+Info.Log.stepSize_primal = Log.stepSize_primal(1 : j, :);
+Info.Log.stepSize_dual = Log.stepSize_dual(1 : j, :);
+Info.Log.VI_natural_residual = Log.VI_natural_residual(1 : j, :);
+Info.Log.iterNum = Log.iterNum(1 : j, :);
+Info.Log.timeElapsed = Log.timeElapsed(1 : j, :);
+% display homotopy terminal result and then break
+disp('*--------------------------------------------- Solution Information ----------------------------------------------*')
+disp(['1. Terminal Message: ', Info.terminalMsg])
+disp('2. Continuation Step Message')
+disp(['- TimeElapsed: ................................. ', num2str(Info.time,'%10.3f'), ' s'])
+disp(['- Continuation Step: ........................... ', num2str(Info.continuationStepNum)])
+disp(['- Time Per Continuation Step: .................. ', num2str(Info.time / Info.continuationStepNum,'%10.2f'), ' s/Step'])
+disp(['- Iterations: .................................. ', num2str(Info.iterNum)])
+disp(['- Time Per Iteration: .......................... ', num2str(1000 * Info.time / Info.iterNum,'%10.2f'), ' ms/Iter'])
+disp('3. Solution Message')
+disp(['- Cost(ocp): ................................... ', num2str(Info.cost.ocp,'%10.3e'), '; '])
+disp(['- Cost(penalty): ............................... ', num2str(Info.cost.penalty,'%10.3e'), '; '])
+disp(['- KKT(primal): ................................. ', num2str(Info.KKT_error.primal,'%10.3e'), '; '])
+disp(['- KKT(dual): ................................... ', num2str(Info.KKT_error.dual,'%10.3e')  '; '])
+disp(['- equilibrium constraint(natural residual): .... ', num2str(Info.VI_natural_residual,'%10.3e'), '; '])
 end

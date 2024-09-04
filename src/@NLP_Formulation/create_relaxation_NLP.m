@@ -27,9 +27,7 @@ function nlp = create_relaxation_NLP(self, OCP)
 %            h_n = [x_{n-1} - x_n + f(x_n, u_n, lambda_n)*dt;
 %                   g(x_n, u_n, lambda_n) - eta_n]     
 %        (5) c = [c_1;...c_n;...c_N] and 
-%            c_n = [1/mu - lambda_n .* eta_n;
-%                   lambda_n;
-%                   eta_n];
+%            c_n is a function with variables lambda_n, eta_n and relaxation parameter 1/mu;
 % output: nlp is a structure with fields:
 %         z, p: variable and parameter
 %         J, h, c: cost and constraint function,  

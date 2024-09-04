@@ -8,7 +8,7 @@ param_b = self.D_gap_param_b;
 % symbolic variable
 u = SX.sym('u', 1, 1);
 v = SX.sym('v', 1, 1);
-% D gap function
+% D gap subfunction
 phi_ab = (param_b - param_a)/(2*param_a*param_b)*v^2 ...
     - 1/(2*param_a)*(max(0, v - param_a*u))^2 ...
     + 1/(2*param_b)*(max(0, v - param_b*u))^2;

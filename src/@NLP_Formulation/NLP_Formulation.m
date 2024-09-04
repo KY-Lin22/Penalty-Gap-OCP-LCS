@@ -101,10 +101,18 @@ classdef NLP_Formulation < handle
             
             %% display NLP information
             disp('*----------------------------------- NLP Information ------------------------------------*')
-            disp('1. Problem Parameter')
-            disp(['CHKS parameter: ....................... ', num2str(self.CHKS_param, '%10.3e')])
+            disp('1. complementarity constraint reformulation')
+             switch self.reformulation_strategy
+                case 'relaxation'
+                    disp(['relaxation strategy: .................. ', self.relaxation_problem])
+                case 'penalty'
+                    disp(['penalty strategy: ..................... ', self.penalty_problem])
+                case 'smoothing'
+                    disp(['smoothing strategy: ................... ', self.smoothing_problem])
+            end           
+            disp('2. Problem Parameter')
             disp(['D gap parameter (a / b): .............. ', num2str(self.D_gap_param_a), ' / ', num2str(self.D_gap_param_b)])
-            disp('2. Problem Size')
+            disp('3. Problem Size')
             disp(['number of decision variable (z): ...... ', num2str(self.Dim.z)])
             disp(['number of equality constraint (h): .... ', num2str(self.Dim.h)])
             disp(['number of inequality constraint (c): .. ', num2str(self.Dim.c)])

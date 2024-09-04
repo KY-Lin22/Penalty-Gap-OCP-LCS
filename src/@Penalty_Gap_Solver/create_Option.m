@@ -18,11 +18,6 @@ Option.tol.dzNorm = 1e-10;
 %% Option for initial guess
 Option.polish_initial_guess_method = 'lambda_posi_eta_zero'; % 'eta_g', 'lambda_posi_eta_zero'
 
-%% Option for hessian
-Option.penalty_hessian_regularization = 1; % 0: without regularization
-                                           % 1: with regularization
-Option.penalty_hessian_additional_regular_param = 1e-8;
-
 %% Option for merit line search
 Option.LineSearch.betaInit = 1; % initial penalty parameter
 Option.LineSearch.rho = 0.1; % desired extend for the negativity of merit function directional derivative

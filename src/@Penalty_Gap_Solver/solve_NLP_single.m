@@ -16,18 +16,6 @@ function [z_Opt, Info] = solve_NLP_single(self, z_Init, p)
 % Output:
 %          z_Opt: double, NLP.Dim.z X 1, optimal solution found by solver
 %          Info: struct, record the iteration information
-%% check input
-% check input z_Init and p
-if ~all(size(z_Init) == [self.NLP.Dim.z, 1])
-    error('z_Init has wrong dimension')
-end
-if ~all(size(p) == [self.NLP.Dim.p, 1])
-    error('p has wrong dimension')
-end
-% check parameter
-if (p(1) < 0)
-    error('penalty parameter mu (i.e, p_1) should be nonnegative')
-end
 
 %% iteration routine (z: previous iterate z_{k-1}, z_k: current iterate z_{k}) 
 % time record
@@ -57,16 +45,8 @@ while true
     % cost Jacobian
     J_grad = full(self.NLP.FuncObj.J_grad(z, p));
     % penalty hessian 
-    switch self.Option.penalty_hessian_regularization
-        case 0
-            % without regularization
-            J_penalty_hessian = sparse(self.NLP.FuncObj.J_penalty_hessian(z, p));
-        case 1
-            % with regularization
-            w = full(self.NLP.FuncObj.w(z));
-            J_penalty_hessian = sparse(self.NLP.FuncObj.J_penalty_hessian_regular(z, p, w)) ...
-                + self.Option.penalty_hessian_additional_regular_param * speye(self.NLP.Dim.z);
-    end
+    w = full(self.NLP.FuncObj.w(z));
+    J_penalty_hessian = sparse(self.NLP.FuncObj.J_penalty_hessian_regular(z, p, w));
     % KKT error (L_inf norm)
     LAG_grad_z = J_grad + gamma_h' * h_grad;
     KKT_error_primal = norm(h, inf);
@@ -77,18 +57,10 @@ while true
     %% step 2: search direction evaluation based on previous iterate z
     timeStart_searchDirection = tic;
 
-    [dz, gamma_h_k, Info_SearchDirection] = self.evaluate_search_direction(h, J_grad, J_penalty_hessian);
+    [dz, gamma_h_k] = self.evaluate_search_direction(h, J_grad, J_penalty_hessian);
 
-    % check status
-    if Info_SearchDirection.status == 0
-        % failure case 2: qp solver fails
-        terminalStatus = -1;
-        terminalMsg = ['- Solver fails: ', Info_SearchDirection.msg];
-        break
-    else
-        % dzNorm (L_inf norm)
-        dzNorm = norm(dz, inf);
-    end
+    % dzNorm (L_inf norm)
+    dzNorm = norm(dz, inf);
 
     timeElasped_searchDirection = toc(timeStart_searchDirection);
 

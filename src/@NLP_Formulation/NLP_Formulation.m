@@ -115,7 +115,11 @@ classdef NLP_Formulation < handle
 
     %% Other methods
     methods
+        % create relaxation NLP
         nlp = create_relaxation_NLP(self, OCP)
+
+        % create penalty gap NLP
+        nlp = create_penalty_gap_NLP(self, OCP)
 
         D_gap_func = create_D_gap_func(self)
 
@@ -124,12 +128,13 @@ classdef NLP_Formulation < handle
         [group_func, decouple_func_lambda, decouple_func_eta] ...
             = create_element_wise_concatenation_func(self, OCP)
 
-        nlp = create_penalty_gap_NLP(self, OCP)
-
+        % create penalty complementarity NLP
         nlp = create_penalty_complementarity_NLP(self, OCP)
 
+        % create smoothing NLP
         nlp = create_smoothing_NLP(self, OCP)
 
+        % create function object
         FuncObj = create_FuncObj(self, nlp)
 
     end

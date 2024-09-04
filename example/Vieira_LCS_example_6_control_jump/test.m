@@ -5,10 +5,9 @@ clc
 % construct OCP problem
 OCP = OCP_Vieira_LCS_control_jump();
 % construct NLP problemLin_Fukushima
-Option.reformulation_strategy = 'smoothing'; % 'relaxation', 'penalty', 'smoothing'
+Option.reformulation_strategy = 'penalty'; % 'relaxation', 'penalty', 'smoothing'
 Option.relaxation_problem = 'Lin_Fukushima'; % 'Scholtes', 'Lin_Fukushima'
 Option.penalty_problem = 'gap_based'; % 'gap_based', 'complementarity_based'
-Option.CHKS_param = 0;
 Option.D_gap_param_a = 0.9;
 Option.D_gap_param_b = 1.1;
 NLP = NLP_Formulation(OCP, Option);

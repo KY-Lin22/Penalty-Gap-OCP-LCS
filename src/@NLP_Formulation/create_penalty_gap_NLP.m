@@ -32,8 +32,7 @@ function nlp = create_penalty_gap_NLP(self, OCP)
 %         z, p: variable and parameter
 %         J, h, c: cost and constraint function,  
 %         J_ocp, J_penalty: cost term
-%         D_gap_func: (z -> 1 X [n_lambda * N])
-%         w: flag vector
+%         w, w_formula: flag vector
 %         regular_func_w: used to compute regular hessian
 %         Dim: problem size
 
@@ -80,6 +79,13 @@ regular_func = regular_func_map(...
 f_stage = f_map(X, U, LAMBDA);
 g_stage = g_map(X, U, LAMBDA);
 
+%% regularization 
+w = SX.sym('w', 1, OCP.Dim.lambda * OCP.nStages);  % flag vector (symbolic var)
+b_lambda_eta = ( self.D_gap_param_b*reshape(LAMBDA, 1, OCP.Dim.lambda * OCP.nStages) >= reshape(ETA, 1, eta_Dim * OCP.nStages) );
+a_lambda_eta = ( self.D_gap_param_a*reshape(LAMBDA, 1, OCP.Dim.lambda * OCP.nStages) <= reshape(ETA, 1, eta_Dim * OCP.nStages) );
+w_formula = (b_lambda_eta) .* (a_lambda_eta);  % flag vector (formula)
+regular_func_w = mu * sum(w .* regular_func);
+
 %% reshape NLP variable and function (column, lowercase)
 % xi: element-wise concatenation of lambda and eta
 [group_func, ~, ~] = self.create_element_wise_concatenation_func(OCP);
@@ -97,12 +103,6 @@ Dim.p = size(p, 1);
 J_ocp = sum(L_S_stage) * OCP.timeStep;
 J_penalty = mu * sum(D_gap_func);
 J = J_ocp + J_penalty;
-% regular
-w = SX.sym('w', 1, OCP.Dim.lambda * OCP.nStages);  % flag vector (symbolic var)
-b_lambda_eta = ( self.D_gap_param_b*reshape(LAMBDA, 1, OCP.Dim.lambda * OCP.nStages) >= reshape(ETA, 1, eta_Dim * OCP.nStages) );
-a_lambda_eta = ( self.D_gap_param_a*reshape(LAMBDA, 1, OCP.Dim.lambda * OCP.nStages) <= reshape(ETA, 1, eta_Dim * OCP.nStages) );
-w_formula = (b_lambda_eta) .* (a_lambda_eta);  % flag vector (formula)
-regular_func_w = mu * sum(w .* regular_func);
 % equality constraint h = 0
 h_stage = ...
     [XPrev - X + f_stage * OCP.timeStep;...
@@ -118,9 +118,7 @@ Dim.c = size(c, 1);
 nlp = struct('z', z, 'p', p,...
     'J', J, 'h', h, 'c', c, ... 
     'J_ocp', J_ocp, 'J_penalty', J_penalty,...
-    'D_gap_func', D_gap_func,...  
-    'w', w,...
-    'w_formula', w_formula,...
+    'w', w, 'w_formula', w_formula,...
     'regular_func_w', regular_func_w,...
     'Dim', Dim);
 end

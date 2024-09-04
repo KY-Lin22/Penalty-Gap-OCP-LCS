@@ -13,37 +13,31 @@ FuncObj.c = Function('c', {nlp.z, nlp.p}, {nlp.c}, {'z', 'p'}, {'c'});
 FuncObj.J_ocp = Function('J_ocp', {nlp.z, nlp.p}, {nlp.J_ocp}, {'z', 'p'}, {'J_ocp'});
 FuncObj.J_penalty = Function('J_penalty', {nlp.z, nlp.p}, {nlp.J_penalty}, {'z', 'p'}, {'J_penalty'});
 
-%% NLP function jacobian
+%% Function object for penalty gap solver
 if strcmp(self.reformulation_strategy, 'penalty') && strcmp(self.penalty_problem, 'gap_based')
-    J_grad = jacobian(nlp.J, nlp.z);
-    FuncObj.J_grad = Function('J_grad', {nlp.z, nlp.p}, {J_grad}, {'z', 'p'}, {'J_grad'});
-
-    h_grad = jacobian(nlp.h, nlp.z);
-    h_grad_func = Function('h_grad_func', {nlp.z}, {h_grad}, {'z'}, {'h_grad'});
-    FuncObj.h_grad = sparse(h_grad_func(zeros(nlp.Dim.z, 1))); % constant matrix
-
-    c_grad = jacobian(nlp.c, nlp.z);
-    FuncObj.c_grad = Function('c_grad', {nlp.z, nlp.p}, {c_grad}, {'z', 'p'}, {'c_grad'});
-
-    % cost hessian
-    [J_ocp_hessian, ~] = hessian(nlp.J_ocp, nlp.z);
-    J_ocp_hessian_func = Function('J_ocp_hessian_func', {nlp.z}, {J_ocp_hessian}, {'z'}, {'J_ocp_hessian'});
-    FuncObj.J_ocp_hessian = sparse(J_ocp_hessian_func(zeros(nlp.Dim.z, 1))); % constant matrix
-
-    [J_penalty_hessian, ~] = hessian(nlp.J_penalty, nlp.z);
-    FuncObj.J_penalty_hessian = Function('J_penalty_hessian',...
-        {nlp.z, nlp.p}, {J_penalty_hessian}, {'z', 'p'}, {'J_penalty_hessian'});
-
-    % D gap function
-    FuncObj.D_gap_func = Function('D_gap_func', {nlp.z}, {nlp.D_gap_func}, {'z'}, {'D_gap_func'});
-
-    % regular penalty cost hessian
-
+    % flag vector
     FuncObj.w = Function('w', {nlp.z}, {nlp.w_formula}, {'z'}, {'w'});
+    % NLP Jacobian
+    J_grad = jacobian(nlp.J, nlp.z);
+    h_grad = jacobian(nlp.h, nlp.z);
+    % NLP Hessian    
+    [J_hessian, ~] = hessian(nlp.J, nlp.z);
     [regular_hessian, ~] = hessian(nlp.regular_func_w, nlp.z);
-    J_penalty_hessian_regular = J_penalty_hessian + regular_hessian;
-    FuncObj.J_penalty_hessian_regular = Function('J_penalty_hessian_regular',...
-        {nlp.z, nlp.p, nlp.w}, {J_penalty_hessian_regular}, {'z', 'p', 'w'}, {'J_penalty_hessian_regular'});
+    J_hessian_regular = J_hessian + regular_hessian;
+    % Lagrangian function and jacobian
+    gamma_h = SX.sym('gamma_h', nlp.Dim.h, 1);
+    LAG = nlp.J + gamma_h' * nlp.h;
+    LAG_grad = jacobian(LAG, nlp.z);
+    FuncObj.LAG_grad = Function('LAG_grad', {nlp.z, gamma_h, nlp.p}, {LAG_grad}, {'z', 'gamma_h', 'p'}, {'LAG_grad'});
+    % KKT residual
+    KKT_residual = [J_grad'; nlp.h];
+    FuncObj.KKT_residual = Function('KKT_residual', {nlp.z, nlp.p}, {KKT_residual}, {'z', 'p'}, {'KKT_residual'});
+    % KKT matrix
+    KKT_matrix = [J_hessian_regular, h_grad';...
+                h_grad, SX(nlp.Dim.h, nlp.Dim.h)];
+    % Newton step
+    dz_gamma_h = -KKT_matrix\KKT_residual;
+    FuncObj.dz_gamma_h = Function('dz_gamma_h', {nlp.z, nlp.p, nlp.w}, {dz_gamma_h}, {'z', 'p', 'w'}, {'dz_gamma_h'});
 end
 
 end

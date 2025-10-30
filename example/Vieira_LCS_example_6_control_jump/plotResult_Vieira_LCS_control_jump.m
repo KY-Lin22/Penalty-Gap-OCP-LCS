@@ -9,31 +9,48 @@ LAMBDA_Opt = Z_Opt(NLP.Dim.z_Node(2) + 1 : NLP.Dim.z_Node(3), :);
 
 timeAxis = 0 : OCP.timeStep : OCP.nStages * OCP.timeStep;
 
+f_FuncObj_map = OCP.FuncObj.f.map(OCP.nStages);
+f_Opt = full(f_FuncObj_map(X_Opt, U_Opt, LAMBDA_Opt));
+
 g_FuncObj_map = OCP.FuncObj.g.map(OCP.nStages);
 g_Opt = full(g_FuncObj_map(X_Opt, U_Opt, LAMBDA_Opt));
 
 figure(111)
-subplot(2,2,1)
-plot(timeAxis, [OCP.x0(1), X_Opt(1, :)], 'r',...
-     timeAxis, [OCP.x0(2), X_Opt(2, :)], 'g', 'LineWidth',1.2)
-legend('x1', 'x2')
+subplot(2,4,1)
+plot(timeAxis, [OCP.x0(1), X_Opt(1, :)], 'r', 'LineWidth',1.2)
 xlabel('time [s]')
-title('differential state')
+title('state $x_1$', 'Interpreter','latex')
 
-subplot(2,2,2)
-plot(timeAxis(2:end), LAMBDA_Opt(1, :), 'r', 'LineWidth', 1.2, 'LineStyle', 'none', 'Marker', '.')
+subplot(2,4,2)
+plot(timeAxis, [OCP.x0(2), X_Opt(2, :)], 'g', 'LineWidth',1.2)
 xlabel('time [s]')
-title('algebraic variable')
+title('state $x_2$', 'Interpreter','latex')
 
-subplot(2,2,3)
+subplot(2,4,3)
+plot(timeAxis(2:end), LAMBDA_Opt(1, :), 'r', 'LineWidth', 1.2)
+xlabel('time [s]')
+title('algebraic var. $ \lambda$', 'Interpreter','latex')
+
+subplot(2,4,4)
 stairs(timeAxis(2:end), U_Opt(1,:), 'LineWidth', 1.2)
 xlabel('time [s]')
-title('control input')
+title('control $u$', 'Interpreter','latex')
 
-subplot(2,2,4)
-plot(timeAxis(2:end), g_Opt(1, :), 'b', 'LineWidth', 1.2, 'LineStyle', 'none', 'Marker', '.')
+subplot(2,4,5)
+plot(timeAxis(2:end), f_Opt(1, :), 'r-', 'LineWidth', 1.2)
 xlabel('time [s]')
-title('VI function')
+title('derivative $\dot{x}_1$', 'Interpreter','latex')
+
+subplot(2,4,6)
+plot(timeAxis(2:end), f_Opt(2, :), 'g-', 'LineWidth', 1.2)
+xlabel('time [s]')
+title('derivative $\dot{x}_2$', 'Interpreter','latex')
+
+subplot(2,4,7)
+plot(timeAxis(2:end), g_Opt(1, :), 'b', 'LineWidth', 1.2)
+xlabel('time [s]')
+title('function $g$', 'Interpreter','latex')
+
 
 end
 

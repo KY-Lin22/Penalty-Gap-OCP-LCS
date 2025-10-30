@@ -5,9 +5,9 @@ clc
 % construct OCP problem
 OCP = OCP_Vieira_LCS_analytic();
 % construct NLP problem
-Option.reformulation_strategy = 'penalty'; % 'relaxation', 'penalty', 'smoothing'
-Option.relaxation_problem = 'Lin_Fukushima'; % 'Scholtes', 'Lin_Fukushima'
-Option.penalty_problem = 'gap_based'; % 'gap_based', 'complementarity_based'
+Option.reformulation_strategy = 'relaxation'; % 'relaxation', 'penalty', 'smoothing'
+Option.relaxation_problem = 'Scholtes'; % 'Scholtes', 'Lin_Fukushima'
+Option.penalty_problem = 'complementarity_based'; % 'gap_based', 'complementarity_based'
 Option.D_gap_param_a = 0.9;
 Option.D_gap_param_b = 1.1;
 NLP = NLP_Formulation(OCP, Option);

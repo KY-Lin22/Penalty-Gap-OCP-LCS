@@ -4,7 +4,7 @@ clc
 %% create OCP, NLP, and solver
 % construct OCP problem
 OCP = OCP_Vieira_LCS_state_jump();
-% construct NLP problemLin_Fukushima
+% construct NLP problem
 Option.reformulation_strategy = 'penalty'; % 'relaxation', 'penalty', 'smoothing'
 Option.relaxation_problem = 'Lin_Fukushima'; % 'Scholtes', 'Lin_Fukushima'
 Option.penalty_problem = 'gap_based'; % 'gap_based', 'complementarity_based'
@@ -30,13 +30,20 @@ end
 solver.Option.Homotopy.kappa_mu_times = 1.2;
 solver.Option.Homotopy.VI_nat_res_tol = 1e-2;
 
-z_Init = randn(NLP.Dim.z, 1);
+z_Init = ones(NLP.Dim.z, 1);
 % p = 1e1;
 % [z_Opt, Info] = solver.solve_NLP_single(z_Init, p);
 
-p_Init = 1e-2;
+p_Init = 1e1;
 p_End = 1e5;
-[z_Opt, Info] = solver.solve_NLP(z_Init, p_Init, p_End);
+num_test = 5;
+time_rec = 0;
+for i = 1 : num_test
+    [z_Opt, Info] = solver.solve_NLP(z_Init, p_Init, p_End);
+    time_rec = time_rec + Info.time;
+end
+disp(['average time: ', num2str(time_rec/num_test)])
+disp(['cost: ', num2str(Info.cost.ocp)])
 
 %% show result
 plotResult_Vieira_LCS_state_jump(OCP, NLP, z_Opt)

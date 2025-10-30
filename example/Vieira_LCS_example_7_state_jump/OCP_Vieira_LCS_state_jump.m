@@ -6,7 +6,7 @@ import casadi.*
 
 % time parameter
 TimeHorizon = 10; % time horizon T
-nStages = 1000; % number of discretized stages
+nStages = 500; % number of discretized stages
 timeStep = TimeHorizon ./ nStages; % discretization time step
 
 x0 = [-2; 1; -1]; % initial state
@@ -20,7 +20,7 @@ u = SX.sym('u', uDim, 1);
 lambda = SX.sym('lambda', lambdaDim, 1);
 
 % cost function
-lambdaWeight = 0;
+lambdaWeight = 0.1;
 Q_x = diag([1, 1, 1]);
 Q_u = 1;
 Q_lambda = lambdaWeight;

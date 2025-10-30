@@ -28,9 +28,9 @@ end
 
 %% set option and solve problem
 solver.Option.Homotopy.kappa_mu_times = 1.2;
-solver.Option.Homotopy.VI_nat_res_tol = 1e-2;
+solver.Option.Homotopy.VI_nat_res_tol = 1e-3;
 
-z_Init = randn(NLP.Dim.z, 1);
+z_Init = zeros(NLP.Dim.z, 1);
 % p = 1e1;
 % [z_Opt, Info] = solver.solve_NLP_single(z_Init, p);
 
